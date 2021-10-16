@@ -2,6 +2,7 @@ package club.towr5291.Concepts;
 
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -19,6 +20,7 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
  */
 
 @TeleOp(name="Concept: Change PID", group = "5291Concept")
+@Disabled
 public class ConceptChangePID extends LinearOpMode {
 
     // our DC motor.

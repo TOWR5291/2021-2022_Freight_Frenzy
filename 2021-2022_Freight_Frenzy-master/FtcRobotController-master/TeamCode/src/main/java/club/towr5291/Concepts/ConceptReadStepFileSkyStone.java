@@ -40,7 +40,7 @@ import club.towr5291.libraries.robotConfig;
  2019-10-19 - Ian Haden - Initial creation
  ***/
 @TeleOp(name = "Concept Read Steps SkyStone", group = "5291Concept")
-//@Disabled
+@Disabled
 public class ConceptReadStepFileSkyStone extends LinearOpMode {
 
     private String teamNumber;

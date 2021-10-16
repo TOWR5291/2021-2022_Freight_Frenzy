@@ -4,6 +4,7 @@ import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import android.widget.TextView;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -25,12 +26,11 @@ import club.towr5291.robotconfig.HardwareArmMotorsSkyStone;
 import club.towr5291.robotconfig.HardwareArmMotorsUltimateGoal;
 import club.towr5291.robotconfig.HardwareDriveMotors;
 
-
 /*
     made by Emma Beggs 11-15-20  ^^^^
-    Note added by AKR
 */
 @TeleOp(name = "BaseDriveEmma", group = "5291")
+@Disabled
 public class BaseDriveEmma extends OpModeMasterLinear {
     private Constants.stepState stepState = Constants.stepState.STATE_COMPLETE;
     private boolean hold = false;
@@ -119,7 +119,7 @@ public class BaseDriveEmma extends OpModeMasterLinear {
         fileLogger.writeEvent("Starting Loop");
 
         dashboard.clearDisplay();
-                dashboard.displayPrintf(3, "Controller A Options");
+        dashboard.displayPrintf(3, "Controller A Options");
         dashboard.displayPrintf(4, "--------------------");
         dashboard.displayPrintf(8, "Controller B Options");
         dashboard.displayPrintf(9, "--------------------");
@@ -173,7 +173,7 @@ public class BaseDriveEmma extends OpModeMasterLinear {
                 double mitch = robotArms.flywheelMotor.getVelocity();
                 telemetry.clearAll();
                 telemetry.update();
-               // telemetry.addLine("Did this Change? " + robotArms.flywheelMotor.getCurrentPosition());
+                // telemetry.addLine("Did this Change? " + robotArms.flywheelMotor.getCurrentPosition());
                 telemetry.addLine("Velocity "  + String.valueOf(mitch));
                 //fileLogger.writeEvent(2, "Actual Velocity: " + String.valueOf(mitch));
             } else if (gamepad2.dpad_down) {
@@ -251,7 +251,7 @@ public class BaseDriveEmma extends OpModeMasterLinear {
         }
         else if (!hold)
             robotArms.liftMotor1.setPower(0);
-            //telemetry.addLine("Lift Motor default " + robotArms.liftMotor1.getCurrentPosition());
+        //telemetry.addLine("Lift Motor default " + robotArms.liftMotor1.getCurrentPosition());
 
         //-gamepad2.left_stick_y);
     }
