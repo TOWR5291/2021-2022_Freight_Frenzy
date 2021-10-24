@@ -127,7 +127,6 @@ public class BaseDriveEmma extends OpModeMasterLinear {
         //the main loop.  this is where the action happens
         while (opModeIsActive()) {
             fileLogger.writeEvent(1, "In Main Loop");
-
             dashboard.displayPrintf(5, "Controller Mode -- ", "Mecanum Drive Relic Recovery (BAD)");
             fileLogger.writeEvent(debug, "Controller Mode", "Mecanum Drive Relic Recovery");
 

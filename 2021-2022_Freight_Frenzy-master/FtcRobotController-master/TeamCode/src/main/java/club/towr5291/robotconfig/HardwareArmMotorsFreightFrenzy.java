@@ -15,7 +15,7 @@ public class HardwareArmMotorsFreightFrenzy {
     public ElapsedTime elapse = new ElapsedTime();
     /* Public OpMode members. */
     public DcMotor          liftMotor1          = null;
-    public DcMotor          intakeMotor1        = null;
+    //public DcMotor          intakeMotor1        = null;
     public DcMotorEx        flywheelMotor       = null; // Enhanced motor controls
     //public DcMotor          intakeMotor         = null;
     //public Servo            wristServo          = null;
@@ -71,23 +71,28 @@ public class HardwareArmMotorsFreightFrenzy {
     }
     public void setHardwareArmDirections(){
         this.liftMotor1.setDirection(DcMotor.Direction.FORWARD);
-        this.flywheelMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        this.flywheelMotor.setDirection(DcMotorSimple.Direction.FORWARD);
     }
     public void setHardwareLiftPower(double power){
         liftMotor1.setPower(power);
     }
+
     public void setHardwareLiftMotorResetEncoders() {
         liftMotor1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
     }
+
     public void setHardwareLiftMotorRunUsingEncoders() {
         liftMotor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
+
     public void setHardwareLiftMotorRunWithoutEncoders() {
         liftMotor1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
     }
+
     public void setHardwareLiftMotorRunToPosition(){
         liftMotor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
     }
+
     public int getLiftMotor1Encoder() {
         return liftMotor1.getCurrentPosition();
     }
