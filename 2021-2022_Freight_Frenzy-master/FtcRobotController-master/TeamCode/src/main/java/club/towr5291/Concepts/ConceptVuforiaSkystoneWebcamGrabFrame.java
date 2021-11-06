@@ -2,9 +2,11 @@ package club.towr5291.Concepts;
 
 import android.graphics.Bitmap;
 import android.os.Environment;
+import android.util.Log;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.RobotLog;
 import com.qualcomm.robotcore.util.ThreadPool;
 import com.vuforia.Frame;
@@ -34,6 +36,8 @@ import static org.firstinspires.ftc.robotcore.external.navigation.AxesOrder.XYZ;
 import static org.firstinspires.ftc.robotcore.external.navigation.AxesOrder.YZX;
 import static org.firstinspires.ftc.robotcore.external.navigation.AxesReference.EXTRINSIC;
 import static org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer.CameraDirection.BACK;
+
+import club.towr5291.functions.FileLogger;
 
 
 /**
@@ -87,7 +91,8 @@ public class ConceptVuforiaSkystoneWebcamGrabFrame extends LinearOpMode {
      * Once you've obtained a license key, copy the string from the Vuforia web site
      * and paste it in to your code on the next line, between the double quotes.
      */
-    private static final String VUFORIA_KEY = "AVnlHKP/////AAABmU5kpwBUw0KGkmPKLAjP2fthurq7h6D9ULkmkt8zlkqRmNOdUk3BsiLm+o93UF/GumwUEhMEUD2R5SCnKb2GeULtLWeSCLjIRYEGSAfOAnt4vVHboCAvwrOlUykc1WESQrw2sbO+jhb/rw6RVR8v3416VgUUO0AHKPN1M47o0PZO17pIYXVcUYByKSc7fqmm/Lld/XdYbCNBwRJnTFgautU/GsLx193RQSN4GAAtW4yOIyLRC8Ezy6zRIqm2RQdxFh9puI0cB/tDc0oZVtSPBg69MEVmEpP0HloGstMtIgFLpp56eH4rmO/ngHsmIVZ0XbSSvAp68QLdKc6IYYJYQTthftLcP6N4z/avQfOwp1wU";
+//    private static final String VUFORIA_KEY = "AVnlHKP/////AAABmU5kpwBUw0KGkmPKLAjP2fthurq7h6D9ULkmkt8zlkqRmNOdUk3BsiLm+o93UF/GumwUEhMEUD2R5SCnKb2GeULtLWeSCLjIRYEGSAfOAnt4vVHboCAvwrOlUykc1WESQrw2sbO+jhb/rw6RVR8v3416VgUUO0AHKPN1M47o0PZO17pIYXVcUYByKSc7fqmm/Lld/XdYbCNBwRJnTFgautU/GsLx193RQSN4GAAtW4yOIyLRC8Ezy6zRIqm2RQdxFh9puI0cB/tDc0oZVtSPBg69MEVmEpP0HloGstMtIgFLpp56eH4rmO/ngHsmIVZ0XbSSvAp68QLdKc6IYYJYQTthftLcP6N4z/avQfOwp1wU";
+    private static final String VUFORIA_KEY = "ARzQPln/////AAABmeFYvYWfk0hLnRCbDsgAdRQ6cpwiLwJmmPsCF3BJaJyZu2OdJkuwc4s/mOfS/4OWz4amTlquwtxDDwds3Ma7WCMIxP2OJ3yo8xkEyqDc61QdDFy3NgKO3RwGwLxtkpjikvWG3y45Yq84mbO0U3mj3NXrNtLl4yckElS7+aaN2VV8ZF29MkxCnCK24w+uPgehkjCyliBnmKhlNETx20SWhsH9r8NC4CmbBWO17sGc7kCeBErLja/gRvUjYEHYoz19zA2GRa7uhYLdxTQWEIUUtARvihAXjlo7ZHK/MiQkQhbhpPi4Pv9HCQ+2HeidKCaBndTr2g56TU+yFu1D4bg/JfLt6gRos2sgmb7K6iZGkcMw";
 
     // Since ImageTarget trackables use mm to specifiy their dimensions, we must use mm for all the physical dimension.
     // We will define some constants and conversions here
@@ -133,10 +138,20 @@ public class ConceptVuforiaSkystoneWebcamGrabFrame extends LinearOpMode {
     private float phoneYRotate    = 0;
     private float phoneZRotate    = 0;
 
-    @Override public void runOpMode() {
+    public FileLogger fileLogger;
+    private ElapsedTime runtime = new ElapsedTime();
+
+    @Override
+    public void runOpMode() throws InterruptedException {
         /*
          * Retrieve the camera we are to use.
          */
+
+        fileLogger = new FileLogger(runtime, 10, true);// initializing FileLogger
+        fileLogger.open();// Opening FileLogger
+        fileLogger.writeEvent(TAG, "Log Started");// First Line Add To Log
+
+        fileLogger.writeEvent("Debug point 1", "Start");
         webcamName = hardwareMap.get(WebcamName.class, "Webcam1");
 
         /*
@@ -144,21 +159,42 @@ public class ConceptVuforiaSkystoneWebcamGrabFrame extends LinearOpMode {
          * We can pass Vuforia the handle to a camera preview resource (on the RC phone);
          * If no camera monitor is desired, use the parameter-less constructor instead (commented out below).
          */
+        fileLogger.writeEvent("Debug point 2", "Start");
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+
+        fileLogger.writeEvent("Debug point 3", "Start");
         VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
+
 
         // VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
 
+        fileLogger.writeEvent("Debug point 4", "Start");
         parameters.vuforiaLicenseKey = VUFORIA_KEY;
 
+        telemetry.addData("Debug Point 1", "done");
+        telemetry.update();
+
+        Thread.sleep(2000);
         /**
          * We also indicate which camera on the RC we wish to use.
          */
+
+        fileLogger.writeEvent("Debug point 5", "Start");
         parameters.cameraName = webcamName;
 
+        telemetry.addData("Debug Point 2", "done");
+        telemetry.update();
+
+        Thread.sleep(2000);
         //  Instantiate the Vuforia engine
+
+        fileLogger.writeEvent("Debug point 6", "Start");
         vuforia = ClassFactory.getInstance().createVuforia(parameters);
 
+        telemetry.addData("Debug Point 3", "done");
+        telemetry.update();
+
+        Thread.sleep(2000);
         /**
          * Because this opmode processes frames in order to write them to a file, we tell Vuforia
          * that we want to ensure that certain frame formats are available in the {@link Frame}s we
@@ -166,44 +202,64 @@ public class ConceptVuforiaSkystoneWebcamGrabFrame extends LinearOpMode {
          */
         vuforia.enableConvertFrameToBitmap();
 
+        telemetry.addData("Debug Point 4", "done");
+        telemetry.update();
+
+        Thread.sleep(2000);
         /** @see #captureFrameToFile() */
         AppUtil.getInstance().ensureDirectoryExists(captureDirectory);
 
+        telemetry.addData("Debug Point 5", "done");
+        telemetry.update();
+
+        Thread.sleep(2000);
         // Load the data sets for the trackable objects. These particular data
         // sets are stored in the 'assets' part of our application.
-        VuforiaTrackables targetsSkyStone = this.vuforia.loadTrackablesFromAsset("Skystone");
+//        VuforiaTrackables targetsSkyStone = this.vuforia.loadTrackablesFromAsset("Skystone");
 
-        VuforiaTrackable stoneTarget = targetsSkyStone.get(0);
-        stoneTarget.setName("Stone Target");
-        VuforiaTrackable blueRearBridge = targetsSkyStone.get(1);
-        blueRearBridge.setName("Blue Rear Bridge");
-        VuforiaTrackable redRearBridge = targetsSkyStone.get(2);
-        redRearBridge.setName("Red Rear Bridge");
-        VuforiaTrackable redFrontBridge = targetsSkyStone.get(3);
-        redFrontBridge.setName("Red Front Bridge");
-        VuforiaTrackable blueFrontBridge = targetsSkyStone.get(4);
-        blueFrontBridge.setName("Blue Front Bridge");
-        VuforiaTrackable red1 = targetsSkyStone.get(5);
-        red1.setName("Red Perimeter 1");
-        VuforiaTrackable red2 = targetsSkyStone.get(6);
-        red2.setName("Red Perimeter 2");
-        VuforiaTrackable front1 = targetsSkyStone.get(7);
-        front1.setName("Front Perimeter 1");
-        VuforiaTrackable front2 = targetsSkyStone.get(8);
-        front2.setName("Front Perimeter 2");
-        VuforiaTrackable blue1 = targetsSkyStone.get(9);
-        blue1.setName("Blue Perimeter 1");
-        VuforiaTrackable blue2 = targetsSkyStone.get(10);
-        blue2.setName("Blue Perimeter 2");
-        VuforiaTrackable rear1 = targetsSkyStone.get(11);
-        rear1.setName("Rear Perimeter 1");
-        VuforiaTrackable rear2 = targetsSkyStone.get(12);
-        rear2.setName("Rear Perimeter 2");
+        telemetry.addData("Debug Point 6", "done");
+        telemetry.update();
 
-        // For convenience, gather together all the trackable objects in one easily-iterable collection */
-        List<VuforiaTrackable> allTrackables = new ArrayList<VuforiaTrackable>();
-        allTrackables.addAll(targetsSkyStone);
+        Thread.sleep(2000);
+//        VuforiaTrackable stoneTarget = targetsSkyStone.get(0);
+//        stoneTarget.setName("Stone Target");
+//        VuforiaTrackable blueRearBridge = targetsSkyStone.get(1);
+//        blueRearBridge.setName("Blue Rear Bridge");
+//        VuforiaTrackable redRearBridge = targetsSkyStone.get(2);
+//        redRearBridge.setName("Red Rear Bridge");
+//        VuforiaTrackable redFrontBridge = targetsSkyStone.get(3);
+//        redFrontBridge.setName("Red Front Bridge");
+//        VuforiaTrackable blueFrontBridge = targetsSkyStone.get(4);
+//        blueFrontBridge.setName("Blue Front Bridge");
+//        VuforiaTrackable red1 = targetsSkyStone.get(5);
+//        red1.setName("Red Perimeter 1");
+//        VuforiaTrackable red2 = targetsSkyStone.get(6);
+//        red2.setName("Red Perimeter 2");
+//        VuforiaTrackable front1 = targetsSkyStone.get(7);
+//        front1.setName("Front Perimeter 1");
+//        VuforiaTrackable front2 = targetsSkyStone.get(8);
+//        front2.setName("Front Perimeter 2");
+//        VuforiaTrackable blue1 = targetsSkyStone.get(9);
+//        blue1.setName("Blue Perimeter 1");
+//        VuforiaTrackable blue2 = targetsSkyStone.get(10);
+//        blue2.setName("Blue Perimeter 2");
+//        VuforiaTrackable rear1 = targetsSkyStone.get(11);
+//        rear1.setName("Rear Perimeter 1");
+//        VuforiaTrackable rear2 = targetsSkyStone.get(12);
+//        rear2.setName("Rear Perimeter 2");
+//
+//        telemetry.addData("Debug Point 7", "done");
+//        telemetry.update();
+//
+//        Thread.sleep(2000);
+//        // For convenience, gather together all the trackable objects in one easily-iterable collection */
+//        List<VuforiaTrackable> allTrackables = new ArrayList<VuforiaTrackable>();
+//        allTrackables.addAll(targetsSkyStone);
 
+        telemetry.addData("Debug Point 8", "done");
+        telemetry.update();
+
+        Thread.sleep(2000);
         /**
          * In order for localization to work, we need to tell the system where each target is on the field, and
          * where the phone resides on the robot.  These specifications are in the form of <em>transformation matrices.</em>
@@ -225,59 +281,59 @@ public class ConceptVuforiaSkystoneWebcamGrabFrame extends LinearOpMode {
         // Set the position of the Stone Target.  Since it's not fixed in position, assume it's at the field origin.
         // Rotated it to to face forward, and raised it to sit on the ground correctly.
         // This can be used for generic target-centric approach algorithms
-        stoneTarget.setLocation(OpenGLMatrix
-                .translation(0, 0, stoneZ)
-                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, -90)));
-
-        //Set the position of the bridge support targets with relation to origin (center of field)
-        blueFrontBridge.setLocation(OpenGLMatrix
-                .translation(-bridgeX, bridgeY, bridgeZ)
-                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 0, bridgeRotY, bridgeRotZ)));
-
-        blueRearBridge.setLocation(OpenGLMatrix
-                .translation(-bridgeX, bridgeY, bridgeZ)
-                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 0, -bridgeRotY, bridgeRotZ)));
-
-        redFrontBridge.setLocation(OpenGLMatrix
-                .translation(-bridgeX, -bridgeY, bridgeZ)
-                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 0, -bridgeRotY, 0)));
-
-        redRearBridge.setLocation(OpenGLMatrix
-                .translation(bridgeX, -bridgeY, bridgeZ)
-                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 0, bridgeRotY, 0)));
-
-        //Set the position of the perimeter targets with relation to origin (center of field)
-        red1.setLocation(OpenGLMatrix
-                .translation(quadField, -halfField, mmTargetHeight)
-                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, 180)));
-
-        red2.setLocation(OpenGLMatrix
-                .translation(-quadField, -halfField, mmTargetHeight)
-                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, 180)));
-
-        front1.setLocation(OpenGLMatrix
-                .translation(-halfField, -quadField, mmTargetHeight)
-                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0 , 90)));
-
-        front2.setLocation(OpenGLMatrix
-                .translation(-halfField, quadField, mmTargetHeight)
-                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, 90)));
-
-        blue1.setLocation(OpenGLMatrix
-                .translation(-quadField, halfField, mmTargetHeight)
-                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, 0)));
-
-        blue2.setLocation(OpenGLMatrix
-                .translation(quadField, halfField, mmTargetHeight)
-                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, 0)));
-
-        rear1.setLocation(OpenGLMatrix
-                .translation(halfField, quadField, mmTargetHeight)
-                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0 , -90)));
-
-        rear2.setLocation(OpenGLMatrix
-                .translation(halfField, -quadField, mmTargetHeight)
-                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, -90)));
+//        stoneTarget.setLocation(OpenGLMatrix
+//                .translation(0, 0, stoneZ)
+//                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, -90)));
+//
+//        //Set the position of the bridge support targets with relation to origin (center of field)
+//        blueFrontBridge.setLocation(OpenGLMatrix
+//                .translation(-bridgeX, bridgeY, bridgeZ)
+//                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 0, bridgeRotY, bridgeRotZ)));
+//
+//        blueRearBridge.setLocation(OpenGLMatrix
+//                .translation(-bridgeX, bridgeY, bridgeZ)
+//                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 0, -bridgeRotY, bridgeRotZ)));
+//
+//        redFrontBridge.setLocation(OpenGLMatrix
+//                .translation(-bridgeX, -bridgeY, bridgeZ)
+//                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 0, -bridgeRotY, 0)));
+//
+//        redRearBridge.setLocation(OpenGLMatrix
+//                .translation(bridgeX, -bridgeY, bridgeZ)
+//                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 0, bridgeRotY, 0)));
+//
+//        //Set the position of the perimeter targets with relation to origin (center of field)
+//        red1.setLocation(OpenGLMatrix
+//                .translation(quadField, -halfField, mmTargetHeight)
+//                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, 180)));
+//
+//        red2.setLocation(OpenGLMatrix
+//                .translation(-quadField, -halfField, mmTargetHeight)
+//                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, 180)));
+//
+//        front1.setLocation(OpenGLMatrix
+//                .translation(-halfField, -quadField, mmTargetHeight)
+//                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0 , 90)));
+//
+//        front2.setLocation(OpenGLMatrix
+//                .translation(-halfField, quadField, mmTargetHeight)
+//                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, 90)));
+//
+//        blue1.setLocation(OpenGLMatrix
+//                .translation(-quadField, halfField, mmTargetHeight)
+//                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, 0)));
+//
+//        blue2.setLocation(OpenGLMatrix
+//                .translation(quadField, halfField, mmTargetHeight)
+//                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, 0)));
+//
+//        rear1.setLocation(OpenGLMatrix
+//                .translation(halfField, quadField, mmTargetHeight)
+//                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0 , -90)));
+//
+//        rear2.setLocation(OpenGLMatrix
+//                .translation(halfField, -quadField, mmTargetHeight)
+//                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, -90)));
 
         //
         // Create a transformation matrix describing where the phone is on the robot.
@@ -316,9 +372,9 @@ public class ConceptVuforiaSkystoneWebcamGrabFrame extends LinearOpMode {
                 .multiplied(Orientation.getRotationMatrix(EXTRINSIC, YZX, DEGREES, phoneYRotate, phoneZRotate, phoneXRotate));
 
         /**  Let all the trackable listeners know where the phone is.  */
-        for (VuforiaTrackable trackable : allTrackables) {
-            ((VuforiaTrackableDefaultListener) trackable.getListener()).setPhoneInformation(robotFromCamera, parameters.cameraDirection);
-        }
+//        for (VuforiaTrackable trackable : allTrackables) {
+//            ((VuforiaTrackableDefaultListener) trackable.getListener()).setPhoneInformation(robotFromCamera, parameters.cameraDirection);
+//        }
 
         // WARNING:
         // In this sample, we do not wait for PLAY to be pressed.  Target Tracking is started immediately when INIT is pressed.
@@ -332,7 +388,7 @@ public class ConceptVuforiaSkystoneWebcamGrabFrame extends LinearOpMode {
         // AFTER you hit Init on the Driver Station, use the "options menu" to select "Camera Stream"
         // Tap the preview window to receive a fresh image.
 
-        targetsSkyStone.activate();
+//        targetsSkyStone.activate();
 
         boolean buttonPressed = false;
 
@@ -344,20 +400,20 @@ public class ConceptVuforiaSkystoneWebcamGrabFrame extends LinearOpMode {
             buttonPressed = gamepad1.a;
             // check all the trackable targets to see which one (if any) is visible.
             targetVisible = false;
-            for (VuforiaTrackable trackable : allTrackables) {
-                if (((VuforiaTrackableDefaultListener)trackable.getListener()).isVisible()) {
-                    telemetry.addData("Visible Target", trackable.getName());
-                    targetVisible = true;
-
-                    // getUpdatedRobotLocation() will return null if no new information is available since
-                    // the last time that call was made, or if the trackable is not currently visible.
-                    OpenGLMatrix robotLocationTransform = ((VuforiaTrackableDefaultListener)trackable.getListener()).getUpdatedRobotLocation();
-                    if (robotLocationTransform != null) {
-                        lastLocation = robotLocationTransform;
-                    }
-                    break;
-                }
-            }
+//            for (VuforiaTrackable trackable : allTrackables) {
+//                if (((VuforiaTrackableDefaultListener)trackable.getListener()).isVisible()) {
+//                    telemetry.addData("Visible Target", trackable.getName());
+//                    targetVisible = true;
+//
+//                    // getUpdatedRobotLocation() will return null if no new information is available since
+//                    // the last time that call was made, or if the trackable is not currently visible.
+//                    OpenGLMatrix robotLocationTransform = ((VuforiaTrackableDefaultListener)trackable.getListener()).getUpdatedRobotLocation();
+//                    if (robotLocationTransform != null) {
+//                        lastLocation = robotLocationTransform;
+//                    }
+//                    break;
+//                }
+//            }
 
             // Provide feedback as to where the robot is located (if we know).
             if (targetVisible) {
@@ -377,7 +433,7 @@ public class ConceptVuforiaSkystoneWebcamGrabFrame extends LinearOpMode {
         }
 
         // Disable Tracking when we are done;
-        targetsSkyStone.deactivate();
+//        targetsSkyStone.deactivate();
     }
     /**
      * Sample one frame from the Vuforia stream and write it to a .PNG image file on the robot

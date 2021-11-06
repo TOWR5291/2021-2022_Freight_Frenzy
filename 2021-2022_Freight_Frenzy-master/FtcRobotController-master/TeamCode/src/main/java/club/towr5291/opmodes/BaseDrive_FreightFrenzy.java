@@ -2,6 +2,7 @@ package club.towr5291.opmodes;
 
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
+import android.renderscript.ScriptGroup;
 import android.widget.TextView;
 
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
@@ -54,9 +55,6 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
     private static TOWRDashBoard dashboard = null;
     public static TOWRDashBoard getDashboard() {return dashboard;}
 
-
-
-
     @Override
     public void runOpMode() throws InterruptedException {
 
@@ -106,32 +104,31 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
         dashboard.displayPrintf(1, "Waiting for Start");
 
         // setup drive motors
-        float LStickX_Ltd;
-        float LStickX_RL;
-        float LStickX_prev;
-        float LStickX_inc = 0.075f;     //  Increase rate of LStickX
-        float LStickX_dec = 0.1f;       //  Decrease rate of LStickX
+        float LStickX_Ltd, LStickX_RL, LStickX_prev;
+        float LStickX_inc = 1.0f;       //  Increase rate of LStickX
+        float LStickX_dec = 1.0f;       //  Decrease rate of LStickX
         float LStickX_Coeff = 2.0f;     //  LStickX Shaping Coefficient
+        float LStickX_Lim = 1.0f;       //  LStickX Max Power
 
-        float LStickY_Ltd;
-        float LStickY_RL;
-        float LStickY_prev;
-        float LStickY_inc = 0.075f;     //  Increase rate of LStickY
-        float LStickY_dec = 0.1f;       //  Decrease rate of LStickY
+        float LStickY_Ltd,LStickY_RL, LStickY_prev;
+        float LStickY_inc = 1.0f;       //  Increase rate of LStickY
+        float LStickY_dec = 1.0f;       //  Decrease rate of LStickY
         float LStickY_Coeff = 2.0f;     //  LStickY Shaping Coefficient
+        float LStickY_Lim = 1.0f;       //  LStickY Max Power
 
-        float RStickX_Ltd;
-        float RStickX_RL;
-        float RStickX_prev;
-        float RStickX_inc = 0.1f;       //  Increase rate of RStickX
-        float RStickX_dec = 0.1f;       //  Decrease rate of RStickX
+        float RStickX_Ltd, RStickX_RL, RStickX_prev;
+        float RStickX_inc = 1.0f;       //  Increase rate of RStickX
+        float RStickX_dec = 1.0f;       //  Decrease rate of RStickX
         float RStickX_Coeff = 3.0f;     //  RStickX Shaping Coefficient
+        float RStickX_Lim = 0.5f;       // RStickX Max Power
 
         // Setup Lift Motor
-        robotArms.liftMotor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        robotArms.liftMotor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         int TrgtPos;
         boolean hold;
+        robotArms.liftMotor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        robotArms.liftMotor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        robotArms.liftMotor1.setPower(0);
+
         hold = false;
         TrgtPos = robotArms.liftMotor1.getCurrentPosition();
         int lvl0_height = 0;        // Ground height
@@ -141,6 +138,7 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
 
         // Setup Flywheel Motor
         robotArms.flywheelMotor.setMode(DcMotorEx.RunMode.RUN_USING_ENCODER);
+        int FlywheelSpd = 1600;
 
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
@@ -170,77 +168,15 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
             fileLogger.writeEvent(debug, "Controller Mode", "Mecanum Drive Freight Frenzy");
 
             // Rate Limit Stick Measurements
-            // this treats an movement away from 0 as an increase, and movement towards zero as a decrease
-            if (gamepad1.left_stick_x >= 0) {
-                if (LStickX_prev >= 0) { // both positive
-                    if (gamepad1.left_stick_x >= LStickX_prev) {
-                        LStickX_RL = Math.min(LStickX_prev + LStickX_inc, gamepad1.left_stick_x);
-                    } else { // LStickX < LStickX_prev
-                        LStickX_RL = Math.max(LStickX_prev - LStickX_dec, gamepad1.left_stick_x);
-                    }
-                } else { //  LStick > 0 && LStickX_prev < 0
-                    LStickX_RL = Math.max(LStickX_prev + LStickX_dec, gamepad1.left_stick_x);
-                }
-            } else { // gamepad1.left_stick_x < 0
-                if (LStickX_prev <= 0) { // both negative
-                    if (gamepad1.left_stick_x >= LStickX_prev) {
-                        LStickX_RL = Math.min(LStickX_prev + LStickX_dec, gamepad1.left_stick_x);
-                    } else { // LStickX < LSTickX_prev
-                        LStickX_RL = Math.max(LStickX_prev - LStickX_inc, gamepad1.left_stick_x);
-                    }
-                } else { // LStickX_prev >= 0
-                    LStickX_RL = Math.max(LStickX_prev - LStickX_dec, gamepad1.left_stick_x);
-                }
-            }
-
-            if (gamepad1.left_stick_y >= 0) {
-                if (LStickY_prev >= 0) { // both positive
-                    if (gamepad1.left_stick_y >= LStickY_prev) {
-                        LStickY_RL = Math.min(LStickY_prev + LStickY_inc, gamepad1.left_stick_y);
-                    } else { // LStickX < LStickX_prev
-                        LStickY_RL = Math.max(LStickY_prev - LStickY_dec, gamepad1.left_stick_y);
-                    }
-                } else { //  LStick > 0 && LStickX_prev < 0
-                    LStickY_RL = Math.max(LStickY_prev + LStickY_dec, gamepad1.left_stick_y);
-                }
-            } else { // gamepad1.left_stick_y < 0
-                if (LStickY_prev <= 0) { // both negative
-                    if (gamepad1.left_stick_y >= LStickY_prev) {
-                        LStickY_RL = Math.min(LStickY_prev + LStickY_dec, gamepad1.left_stick_y);
-                    } else { // LStickX < LSTickX_prev
-                        LStickY_RL = Math.max(LStickY_prev - LStickY_inc, gamepad1.left_stick_y);
-                    }
-                } else { // LStickX_prev >= 0
-                    LStickY_RL = Math.max(LStickY_prev - LStickY_dec, gamepad1.left_stick_y);
-                }
-            }
-
-            if (gamepad1.right_stick_x >= 0) {
-                if (RStickX_prev >= 0) { // both positive
-                    if (gamepad1.right_stick_x >= RStickX_prev) {
-                        RStickX_RL = Math.min(RStickX_prev + RStickX_inc, gamepad1.right_stick_x);
-                    } else { // RStickX < RStickX_prev
-                        RStickX_RL = Math.max(RStickX_prev - RStickX_dec, gamepad1.right_stick_x);
-                    }
-                } else { //  LStick > 0 && RStickX_prev < 0
-                    RStickX_RL = Math.max(RStickX_prev + RStickX_dec, gamepad1.right_stick_x);
-                }
-            } else { // gamepad1.right_stick_x < 0
-                if (RStickX_prev <= 0) { // both negative
-                    if (gamepad1.right_stick_x >= RStickX_prev) {
-                        RStickX_RL = Math.min(RStickX_prev + RStickX_dec, gamepad1.right_stick_x);
-                    } else { // RStickX < RStickX_prev
-                        RStickX_RL = Math.max(RStickX_prev - RStickX_inc, gamepad1.right_stick_x);
-                    }
-                } else { // RStickX_prev >= 0
-                    RStickX_RL = Math.max(RStickX_prev - RStickX_dec, gamepad1.right_stick_x);
-                }
-            }
+            // this treats a movement away from 0 as an increase, and movement towards zero as a decrease
+            LStickX_RL = RateLimitInputVal(gamepad1.left_stick_x, LStickX_inc, LStickX_dec, LStickX_prev);
+            LStickY_RL = RateLimitInputVal(gamepad1.left_stick_y, LStickY_inc, LStickY_dec, LStickY_prev);
+            RStickX_RL = RateLimitInputVal(gamepad1.right_stick_x, RStickX_inc, RStickX_dec, RStickX_prev);
 
             // Shape Stick Measurments
-            LStickX_Ltd = (float) (Math.pow(Math.abs(LStickX_RL),LStickX_Coeff) * Math.signum(LStickX_RL));
-            LStickY_Ltd = (float) (Math.pow(Math.abs(LStickY_RL),LStickY_Coeff) * Math.signum(LStickY_RL));
-            RStickX_Ltd = (float) (Math.pow(Math.abs(RStickX_RL),RStickX_Coeff) * Math.signum(RStickX_RL));
+            LStickX_Ltd = (float) (Math.pow(Math.abs(LStickX_RL),LStickX_Coeff) * Math.signum(LStickX_RL)*LStickX_Lim);
+            LStickY_Ltd = (float) (Math.pow(Math.abs(LStickY_RL),LStickY_Coeff) * Math.signum(LStickY_RL)*LStickY_Lim);
+            RStickX_Ltd = (float) (Math.pow(Math.abs(RStickX_RL),RStickX_Coeff) * Math.signum(RStickX_RL)*RStickX_Lim);
 
             // *** Call liftMotorPower and execute arm movement         ***
             DriveMotorControl(LStickX_Ltd,LStickY_Ltd, RStickX_Ltd );        // *** Call DriveMotorControl and execute movement          ***
@@ -253,9 +189,9 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
             // ***                      Robot Arm                                                   ***
             // ****************************************************************************************
             if (TrgtPos < robotArms.liftMotor1.getCurrentPosition()) {
-                TrgtPow = 0.33;   // ***  Down Power Level ***
+                TrgtPow = 0.66;   // ***  Up Power Level ***
             } else {
-                TrgtPow = 0.66; // *** Up Power Level ***
+                TrgtPow = 0.33; // *** Down Power Level ***
             }
 
             if (gamepad2.x||gamepad1.x) {             // ***              Move ARM DOWN             ***
@@ -269,9 +205,15 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
                 TrgtPos = robotArms.liftMotor1.getCurrentPosition();
                 hold = true;
             } else if ((gamepad2.back)) {      // *** Learn zero position with drive controller     ***
-                TrgtPos = robotArms.liftMotor1.getCurrentPosition();
+                robotArms.liftMotor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                robotArms.liftMotor1.setPower(0);
                 robotArms.liftMotor1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                robotArms.liftMotor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
                 TrgtPos = robotArms.liftMotor1.getCurrentPosition();
+                robotArms.liftMotor1.setPower(0);
+                TrgtPos = lvl0_height;
+                hold = true;
+                //gamepad2.rumble(1000);
                 hold = false;
             } else if (gamepad2.dpad_down){     // *** move to zero                                 ***
                 robotArms.liftMotor1.setPower(TrgtPow);
@@ -291,8 +233,11 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
                 hold = true;
             } else {
                 if (hold) {
-                    robotArms.liftMotor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    //robotArms.liftMotor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                    //robotArms.liftMotor1.setPower(0);
                     robotArms.liftMotor1.setTargetPosition(TrgtPos);
+                    robotArms.liftMotor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    //robotArms.liftMotor1.setTargetPosition(TrgtPos);
                     robotArms.liftMotor1.setPower(TrgtPow);
                 } else {
                     robotArms.liftMotor1.setPower(0);
@@ -303,9 +248,11 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
             // ***                     gripper claw                                                 ***
             // ****************************************************************************************
 
-            // *** This logic looks for the button press event and acts on the press event ***
-            boolean clawIsOpen = robotArms.ClawServo.getPosition() < 0.30;
+            /* This is the code to use in Servo mode
+            boolean clawIsOpen = robotArms.ClawServo.getPosition() < 0.49;
             boolean curr_LB2 = gamepad2.left_bumper;
+
+            // *** This logic looks for the button press event and acts on the press event ***
             if (curr_LB2 && (curr_LB2 != prev_LB2)){ // *** This logic looks for the button press event
                 if (clawIsOpen) {
                     robotArms.ClawServo.setPosition(0.0);
@@ -315,17 +262,26 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
             } else if (gamepad2.right_bumper) {
                 robotArms.ClawServo.setPosition(1); // *** Close Claw ***
             }
-
             prev_LB2 = curr_LB2;
+            */
+
+            // This is the code to use servo in Continuous mode
+            if (gamepad2.left_bumper) { // open claw
+                robotArms.ClawServo.setPosition(0.0);
+            }else if (gamepad2.right_bumper) { // close claw
+                robotArms.ClawServo.setPosition(1.0);
+            } else {
+                robotArms.ClawServo.setPosition(0.5); // hold claw
+            }
 
             // ****************************************************************************************
             // ***               Carousel Spinner                                                   ***
             // ****************************************************************************************
 
             if (gamepad2.left_trigger > 0.1) {
-                robotArms.flywheelMotor.setVelocity(-1600 * gamepad2.left_trigger);
+                robotArms.flywheelMotor.setVelocity(-FlywheelSpd * gamepad2.left_trigger);
             } else if  (gamepad2.right_trigger > 0.1) {
-                robotArms.flywheelMotor.setVelocity(1600 * gamepad2.right_trigger);
+                robotArms.flywheelMotor.setVelocity(FlywheelSpd * gamepad2.right_trigger);
             } else {
                 robotArms.flywheelMotor.setVelocity(0);
             } // if Carousel Spinner
@@ -335,7 +291,7 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
             // ****************************************************************************************
 
             telemetry.clearAll();
-            telemetry.addLine("Claw is Open: " + clawIsOpen + " @ " + robotArms.ClawServo.getPosition());
+            //telemetry.addLine("Claw is Open: " + /*clawIsOpen + */ " @ " + robotArms.ClawServo.getPosition());
             telemetry.addLine("Flywheel Speed: " + robotArms.flywheelMotor.getVelocity());
             telemetry.addLine("Lift Motor Pos: " + robotArms.liftMotor1.getCurrentPosition());
             telemetry.addLine("          Trgt: " + TrgtPos);
@@ -343,7 +299,6 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
             telemetry.addLine("Rx:      " + gamepad1.right_stick_x);
             telemetry.addLine("Rx RL:   " + (double) ((int) (RStickX_RL*100+.5))/100f);
             telemetry.addLine("Rx Lim:  " + (double) ((int) (RStickX_Ltd*100+.5))/100f);
-
             telemetry.update();
 
         }// while (opModeIsActive)
@@ -356,6 +311,35 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
             fileLogger = null;
         } // if fileLogger
     } // runOpMode
+
+    public float RateLimitInputVal(float InputVal, float IncRL, float DecRL, float PrevVal){
+        // Rate Limit Stick Measurements
+        // this treats a movement away from 0 as an increase, and movement towards zero as a decrease
+        float RateLim;
+
+        if (InputVal >= 0) {
+            if (PrevVal >= 0) { // both positive
+                if (InputVal >= PrevVal) {
+                    RateLim = Math.min(PrevVal + IncRL, InputVal);
+                } else { // LStickX < LStickX_prev
+                    RateLim = Math.max(PrevVal - DecRL, InputVal);
+                }
+            } else { //  LStick > 0 && LStickX_prev < 0
+                RateLim = Math.max(PrevVal + DecRL, InputVal);
+            }
+        } else { // gamepad1.left_stick_x < 0
+            if (PrevVal <= 0) { // both negative
+                if (InputVal >= PrevVal) {
+                    RateLim = Math.min(PrevVal + DecRL, InputVal);
+                } else { // LStickX < LSTickX_prev
+                    RateLim = Math.max(PrevVal - IncRL, InputVal);
+                }
+            } else { // LStickX_prev >= 0
+                RateLim = Math.max(PrevVal - DecRL, InputVal);
+            }
+        }
+        return RateLim;
+    }
 
     public void DriveMotorControl(float LStickX_Lim, float LStickY_Lim, float RStickX_Lim){
 
@@ -375,7 +359,7 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
 
         // *** Enhanced Proportional Motor Command   Calculation            ***
         // *** Clip max motor power req geometricaly                        ***
-        mtr1_pwrreq = 0 - LStickY_Lim + LStickX_Lim + RStickX_Lim;
+        mtr1_pwrreq = 0 - LStickY_Lim + LStickX_Lim + RStickX_Lim; //Left Front
         mtr2_pwrreq = 0 - LStickY_Lim - LStickX_Lim + RStickX_Lim;
         mtr3_pwrreq = 0 - LStickY_Lim - LStickX_Lim - RStickX_Lim;
         mtr4_pwrreq = 0 - LStickY_Lim + LStickX_Lim - RStickX_Lim;
@@ -392,11 +376,10 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
         robotDrive.baseMotor3.setPower(mtr3_pwrcmd);
         robotDrive.baseMotor4.setPower(mtr4_pwrcmd);
 
-            /*robotDrive.baseMotor1.setPower(Math.pow((Range.clip((0 - gamepad1.left_stick_y + gamepad1.left_stick_x + gamepad1.right_stick_x)/mtr_pwrmax, -1, 1)),3));
-            robotDrive.baseMotor2.setPower(Math.pow((Range.clip((0 - gamepad1.left_stick_y - gamepad1.left_stick_x + gamepad1.right_stick_x)/mtr_pwrmax, -1, 1)),3));
-            robotDrive.baseMotor3.setPower(Math.pow((Range.clip((0 - gamepad1.left_stick_y - gamepad1.left_stick_x - gamepad1.right_stick_x)/mtr_pwrmax, -1, 1)),3));
-            robotDrive.baseMotor4.setPower(Math.pow((Range.clip((0 - gamepad1.left_stick_y + gamepad1.left_stick_x - gamepad1.right_stick_x)/mtr_pwrmax, -1, 1)),3));*/
-
+        // robotDrive.baseMotor1.setPower(Math.pow((Range.clip((0 - gamepad1.left_stick_y + gamepad1.left_stick_x + gamepad1.right_stick_x)/mtr_pwrmax, -1, 1)),3));
+            // robotDrive.baseMotor2.setPower(Math.pow((Range.clip((0 - gamepad1.left_stick_y - gamepad1.left_stick_x + gamepad1.right_stick_x)/mtr_pwrmax, -1, 1)),3));
+            // robotDrive.baseMotor3.setPower(Math.pow((Range.clip((0 - gamepad1.left_stick_y - gamepad1.left_stick_x - gamepad1.right_stick_x)/mtr_pwrmax, -1, 1)),3));
+            // robotDrive.baseMotor4.setPower(Math.pow((Range.clip((0 - gamepad1.left_stick_y + gamepad1.left_stick_x - gamepad1.right_stick_x)/mtr_pwrmax, -1, 1)),3));
     } // DriveMotorControl
 
 } // public class

@@ -114,7 +114,7 @@ public class ReadStepFileXML {
                     case "Left":
                         switch (robotconfig.getTeamNumber()) {
                             case "5291":
-                                autonomousSteps = loadSteps("5291RedLeftSkyStone.xml");
+                                autonomousSteps = loadSteps("5291RedLeftFreightFrenzy.xml");
                                 break;
                             case "11230":
                                 autonomousSteps = loadSteps("");
@@ -127,7 +127,7 @@ public class ReadStepFileXML {
                     case "Right":
                         switch (robotconfig.getTeamNumber()) {
                             case "5291":
-                                autonomousSteps = loadSteps("5291RedRightSkyStone.xml");
+                                autonomousSteps = loadSteps("5291RedRightFreightFrenzy.xml");
                                 break;
                             case "11230":
                                 autonomousSteps = loadSteps("");
@@ -144,7 +144,7 @@ public class ReadStepFileXML {
                     case "Left":
                         switch (robotconfig.getTeamNumber()) {
                             case "5291":
-                                autonomousSteps = loadSteps("5291BlueLeftSkyStone.xml");
+                                autonomousSteps = loadSteps("5291BlueLeftFreightFrenzy.xml");
                                 break;
                             case "11230":
                                 autonomousSteps = loadSteps("");
@@ -157,7 +157,7 @@ public class ReadStepFileXML {
                     case "Right":
                         switch (robotconfig.getTeamNumber()) {
                             case "5291":
-                                autonomousSteps = loadSteps("5291BlueRightSkyStone.xml");
+                                autonomousSteps = loadSteps("5291BlueRightFreightFrenzy.xml");
                                 break;
                             case "11230":
                                 autonomousSteps = loadSteps("");
@@ -172,7 +172,7 @@ public class ReadStepFileXML {
             case "Test":
                 switch (robotconfig.getTeamNumber()) {
                     case "5291":
-                        autonomousSteps = loadSteps("5291TestSkyStone.xml");
+                        autonomousSteps = loadSteps("5291TestFreightFrenzy.xml");
                         break;
                     case "11230":
                         autonomousSteps = loadSteps("");

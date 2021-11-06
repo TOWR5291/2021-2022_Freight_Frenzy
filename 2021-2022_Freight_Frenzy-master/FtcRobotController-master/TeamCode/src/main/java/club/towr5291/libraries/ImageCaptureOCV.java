@@ -25,7 +25,7 @@ import static org.opencv.core.Core.countNonZero;
 
 public class ImageCaptureOCV {
 
-    private LibraryVuforiaUltimateGoal libraryVuforiaUltimateGoal;
+    private VuforiaLocalizer libraryVuforiaUltimateGoal;
     private Mat currentMat;
     private TOWRDashBoard dash;
     private FileLogger logger;
@@ -42,8 +42,17 @@ public class ImageCaptureOCV {
     }
 
     public void initImageCaptureOCV(LibraryVuforiaUltimateGoal libraryVuforiaUltimateGoal, TOWRDashBoard dashBoard, FileLogger fileLogger) {
-        this.libraryVuforiaUltimateGoal = libraryVuforiaUltimateGoal;
+        this.libraryVuforiaUltimateGoal = libraryVuforiaUltimateGoal.getVuforia();
         this.currentMat = new Mat();
+        this.dash = dashBoard;
+        this.logger = fileLogger;
+        this.rgbImage = null;
+    }
+
+    public void initImageCaptureOCV(VuforiaLocalizer vuforiaLocalizer, TOWRDashBoard dashBoard, FileLogger fileLogger) {
+
+        this.libraryVuforiaUltimateGoal = vuforiaLocalizer;
+//        this.currentMat = new Mat();
         this.dash = dashBoard;
         this.logger = fileLogger;
         this.rgbImage = null;
@@ -52,7 +61,10 @@ public class ImageCaptureOCV {
     public void takeImage(OnImageCapture onImageCapture) {
 
          try {
-        VuforiaLocalizer.CloseableFrame frame = this.libraryVuforiaUltimateGoal.getVuforia().getFrameQueue().take();
+        VuforiaLocalizer.CloseableFrame frame = this.libraryVuforiaUltimateGoal.getFrameQueue().take();
+        dash.displayPrintf(0, "Check Point 1");
+
+             Thread.sleep(1000);
         ///  this.libraryVuforiaRoverRuckus.getVuforia().getFrameOnce(Continuation.create(ThreadPool.getDefault(), new Consumer<Frame>() {
         //VuforiaLocalizer.CloseableFrame frame = this.
         ///        @Override
@@ -63,6 +75,9 @@ public class ImageCaptureOCV {
         // public void accept(Frame frame) {
         //VuforiaLocalizer.CloseableFrame frame = this.libraryVuforiaRoverRuckus.getVuforia().getFrameQueue().take(); //takes the frame at the head of the queue
         long numImages = frame.getNumImages();
+        dash.displayPrintf(0, "Check Point 2");
+
+             Thread.sleep(1000);
         if (frame == null) {
            logger.writeEvent(3, "VISION", "Yep Null " + numImages);
         }
@@ -80,6 +95,9 @@ public class ImageCaptureOCV {
                logger.writeEvent(3, "VISION", "This did not happen " + numImages);
             }
         }
+        dash.displayPrintf(0, "Check Point 3");
+
+             Thread.sleep(1000);
         logger.writeEvent(3, "VISION", "Right Before Frame to BM" + numImages);
         //Bitmap bitmap = libraryVuforiaRoverRuckus.getVuforia().convertFrameToBitmap(frame);
         //              Bitmap bitmap = vuforia.convertFrameToBitmap(frame);
@@ -88,7 +106,9 @@ public class ImageCaptureOCV {
         bitmap.copyPixelsFromBuffer(this.rgbImage.getPixels());
         logger.writeEvent(3, "VISION", "Right After Frame to BM" + numImages);
         //put the image into a MAT for OpenCV
-        //if (bitmap != null) {
+        //if (bitmap != null)
+             dash.displayPrintf(0, "Check Point 4");
+             Thread.sleep(1000);
         currentMat = new Mat(this.rgbImage.getWidth(), this.rgbImage.getHeight(), CvType.CV_8UC4);
         //}
         //else {
@@ -114,13 +134,10 @@ public class ImageCaptureOCV {
     ///    }));
 
      ///   onImageCapture.OnImageCaptureVoid(currentMat);
-        }catch(
-                InterruptedException e)
-
-                {
+        }catch(InterruptedException e) {
                     dash.displayPrintf(1, "VUFORIA --- ERROR ERROR ERROR");
                     dash.displayPrintf(2, "VUFORIA --- ERROR ERROR ERROR");
-                }
+         }
 
 
         onImageCapture.OnImageCaptureVoid(currentMat);

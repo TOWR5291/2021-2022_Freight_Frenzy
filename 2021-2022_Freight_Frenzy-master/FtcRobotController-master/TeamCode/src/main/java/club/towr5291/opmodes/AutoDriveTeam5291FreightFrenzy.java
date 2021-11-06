@@ -35,6 +35,7 @@ package club.towr5291.opmodes;
 //Android Imports
 
 import android.content.SharedPreferences;
+import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.widget.TextView;
@@ -42,7 +43,6 @@ import android.widget.TextView;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.bosch.JustLoggingAccelerationIntegrator;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -50,8 +50,13 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
+import com.vuforia.Frame;
+import com.vuforia.HINT;
+import com.vuforia.PIXEL_FORMAT;
+import com.vuforia.Vuforia;
 
 import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -61,18 +66,22 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 import org.firstinspires.ftc.robotcore.internal.opmode.OpModeManagerImpl;
+import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.firstinspires.ftc.teamcode.R;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
 
-import java.util.Arrays;
+import java.io.File;
 import java.util.HashMap;
 
 import club.towr5291.functions.Constants;
 import club.towr5291.functions.FileLogger;
 import club.towr5291.functions.ReadStepFileXML;
-import club.towr5291.functions.SkyStoneOCV;
 import club.towr5291.functions.TOWR5291PID;
 import club.towr5291.functions.TOWR5291TextToSpeech;
 import club.towr5291.functions.TOWR5291Utils;
@@ -80,12 +89,11 @@ import club.towr5291.functions.UltimateGoalOCV;
 import club.towr5291.libraries.ImageCaptureOCV;
 import club.towr5291.libraries.LibraryMotorType;
 import club.towr5291.libraries.LibraryStateSegAutoRoverRuckus;
-import club.towr5291.libraries.LibraryVuforiaRoverRuckus;
 import club.towr5291.libraries.LibraryVuforiaUltimateGoal;
 import club.towr5291.libraries.TOWRDashBoard;
 import club.towr5291.libraries.robotConfig;
 import club.towr5291.libraries.robotConfigSettings;
-import club.towr5291.robotconfig.HardwareArmMotorsSkyStone;
+import club.towr5291.robotconfig.HardwareArmMotorsFreightFrenzy;
 import club.towr5291.robotconfig.HardwareArmMotorsUltimateGoal;
 import club.towr5291.robotconfig.HardwareDriveMotors;
 import club.towr5291.robotconfig.HardwareSensorsSkyStone;
@@ -123,13 +131,13 @@ Written by Ian Haden/Wyatt Ashley October 2018
 
 */
 
-@Autonomous(name="5291 Autonomous Drive Ultimate Goal", group="5291")
-@Disabled
-public class AutoDriveTeam5291UltimateGoal extends OpModeMasterLinear {
+@Autonomous(name="5291 Autonomous Drive Freight Frenzy", group="5291")
+//@Disabled
+public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
 
     private OpMode onStop = this;
     private OpModeManagerImpl opModeManager;
-    private String TeleOpMode = "Base Drive 2019";
+    private String TeleOpMode = "Base Drive 2021";
 
     final int LABEL_WIDTH = 200;
 
@@ -205,8 +213,8 @@ public class AutoDriveTeam5291UltimateGoal extends OpModeMasterLinear {
     //motors
     // load all the robot configurations for this season
     private HardwareDriveMotors robotDrive          = new HardwareDriveMotors();   // Use 5291's hardware
-    private HardwareArmMotorsUltimateGoal robotArms     = new HardwareArmMotorsUltimateGoal();   // Use 5291's hardware
-    private HardwareSensorsSkyStone sensors         = new HardwareSensorsSkyStone();
+    private HardwareArmMotorsFreightFrenzy robotArms     = new HardwareArmMotorsFreightFrenzy();   // Use 5291's hardware
+    //private HardwareSensorsSkyStone sensors         = new HardwareSensorsSkyStone();
 
     PIDFCoefficients getMotorPIDFMotor1;
     PIDFCoefficients getMotorPIDFMotor2;
@@ -458,7 +466,7 @@ public class AutoDriveTeam5291UltimateGoal extends OpModeMasterLinear {
 
         dashboard.displayPrintf(10, "initRobot Sensors Loading");
         //init all the sensors
-        sensors.init(hardwareMap);
+        //sensors.init(hardwareMap);
 
         dashboard.displayPrintf(10, "initRobot BaseDrive Loading");
 
@@ -535,31 +543,65 @@ public class AutoDriveTeam5291UltimateGoal extends OpModeMasterLinear {
 
         mblnNextStepLastPos = false;
 
-        towr5291TextToSpeech.Speak("Loading OpenCV & Vuforia", debug);
+        fileLogger.writeEvent(3, "OpenCV Engine Starting");
         //init openCV
-        initOpenCv();
+//        initOpenCv();
         dashboard.displayPrintf(1, "initRobot OpenCV!");
         fileLogger.writeEvent(3, "OpenCV Started");
 
         //load all the vuforia stuff
-        LibraryVuforiaUltimateGoal UltimateGoalVuforia = new LibraryVuforiaUltimateGoal();
-        VuforiaTrackables UltimateGoalTrackables;
+//        LibraryVuforiaUltimateGoal UltimateGoalVuforia = new LibraryVuforiaUltimateGoal();
+//        VuforiaTrackables UltimateGoalTrackables;
+        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
+        String VUFORIA_KEY = "ARzQPln/////AAABmeFYvYWfk0hLnRCbDsgAdRQ6cpwiLwJmmPsCF3BJaJyZu2OdJkuwc4s/mOfS/4OWz4amTlquwtxDDwds3Ma7WCMIxP2OJ3yo8xkEyqDc61QdDFy3NgKO3RwGwLxtkpjikvWG3y45Yq84mbO0U3mj3NXrNtLl4yckElS7+aaN2VV8ZF29MkxCnCK24w+uPgehkjCyliBnmKhlNETx20SWhsH9r8NC4CmbBWO17sGc7kCeBErLja/gRvUjYEHYoz19zA2GRa7uhYLdxTQWEIUUtARvihAXjlo7ZHK/MiQkQhbhpPi4Pv9HCQ+2HeidKCaBndTr2g56TU+yFu1D4bg/JfLt6gRos2sgmb7K6iZGkcMw";
+        parameters.vuforiaLicenseKey = VUFORIA_KEY;
+        parameters.cameraName = hardwareMap.get(WebcamName.class, "Webcam1");
+        VuforiaLocalizer vuforia = ClassFactory.getInstance().createVuforia(parameters);
+        vuforia.enableConvertFrameToBitmap();
+        AppUtil.getInstance().ensureDirectoryExists(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES));
 
-        if (vuforiaWebcam) {
-            robotWebcam = hardwareMap.get(WebcamName.class, "Webcam1");
-            UltimateGoalTrackables = UltimateGoalVuforia.LibraryVuforiaUltimateGoal(hardwareMap, ourRobotConfig, robotWebcam, false);
-        } else{
-            UltimateGoalTrackables = UltimateGoalVuforia.LibraryVuforiaUltimateGoal(hardwareMap, ourRobotConfig, robotWebcam, false);
-        }
+//        if (vuforiaWebcam) {
+//            robotWebcam = hardwareMap.get(WebcamName.class, "Webcam1");
+//            UltimateGoalTrackables = UltimateGoalVuforia.LibraryVuforiaUltimateGoal(hardwareMap, ourRobotConfig, robotWebcam, false);
+//        } else{
+//            UltimateGoalTrackables = UltimateGoalVuforia.LibraryVuforiaUltimateGoal(hardwareMap, ourRobotConfig, robotWebcam, false);
+//        }
 
-        imageCaptureOCV.initImageCaptureOCV(UltimateGoalVuforia, dashboard, fileLogger);
+//        imageCaptureOCV.initImageCaptureOCV(UltimateGoalVuforia, dashboard, fileLogger);
+
+        imageCaptureOCV.initImageCaptureOCV(vuforia, dashboard, fileLogger);
+//        imageCaptureOCV.takeImage(new ImageCaptureOCV.OnImageCapture() {
+//            @Override
+//            public void OnImageCaptureVoid(Mat mat) {
+//
+//                Mat mIntermediateMat = new Mat();
+//                Mat mIntermediateMat2 = new Mat();
+//
+//                mat.convertTo(mIntermediateMat2, CvType.CV_8UC4);
+//                if (mIntermediateMat2.channels() > 2)
+//                    Imgproc.cvtColor(mIntermediateMat2, mIntermediateMat, Imgproc.COLOR_RGBA2BGR, 3);
+//                else
+//                    mIntermediateMat = mIntermediateMat2;
+//
+//
+//                File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
+//                String filename = "testImage" + ".png";
+//                File file = new File(path, filename);
+//
+//                Boolean bool = null;
+//                filename = file.toString();
+//                bool = Imgcodecs.imwrite(filename, mIntermediateMat);
+//
+//                fileLogger.writeEvent(1, "Writing image " + filename + " = " + bool);
+//            }
+//        });
+        fileLogger.writeEvent("Finished OpenCV");
         //tensorFlowRoverRuckus.initTensorFlow(RoverRuckusVuforia.getVuforiaLocalizer(), hardwareMap, fileLogger, "RoverRuckus.tflite", "GOLD", "SILVER", true);
 
-        fileLogger.writeEvent(3,"MAIN","Configured Vuforia - About to Activate");
-        dashboard.displayPrintf(10, "Configured Vuforia - About to Activate");
-
         //activate vuforia
-        UltimateGoalTrackables.activate();
+
+        //UltimateGoalTrackables.activate();
 
         fileLogger.writeEvent(3,"MAIN", "Activated Vuforia");
 
@@ -578,7 +620,7 @@ public class AutoDriveTeam5291UltimateGoal extends OpModeMasterLinear {
  //       robotArms.leftWristServo.setPosition(0.05);
  //       robotArms.leftArmServo.setPosition(0.0);
  //       robotArms.leftClampServo.setPosition(0.15);
-        robotArms.foundationServo.setPosition(1);
+        //robotArms.foundationServo.setPosition(1);
         robotArms.liftMotor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         robotArms.liftMotor1.setPower(0);
 
@@ -667,10 +709,10 @@ public class AutoDriveTeam5291UltimateGoal extends OpModeMasterLinear {
                     mintCurrentStateStep = Constants.stepState.STATE_INIT;
                     break;
                 case STATE_TIMEOUT:
-                    robotArms.intakeMotor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+                    //robotArms.intakeMotor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
                     robotArms.liftMotor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
                     robotDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-                    robotArms.intakeMotor1.setPower(0);
+                    //robotArms.intakeMotor1.setPower(0);
                     robotArms.liftMotor1.setPower(0);
                     robotDrive.setHardwareDrivePower(0);
                     //  Transition to a new state.
@@ -680,10 +722,10 @@ public class AutoDriveTeam5291UltimateGoal extends OpModeMasterLinear {
                     dashboard.displayPrintf(1, LABEL_WIDTH,"STATE", "ERROR WAITING TO FINISH " + mintCurrentStep);
                     break;
                 case STATE_FINISHED:
-                    robotArms.intakeMotor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+                    //robotArms.intakeMotor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
                     robotArms.liftMotor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
                     robotDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-                    robotArms.intakeMotor1.setPower(0);
+                    //robotArms.intakeMotor1.setPower(0);
                     robotArms.liftMotor1.setPower(0);
                     robotDrive.setHardwareDrivePower(0);
                     robotDrive.setHardwareDriveRunWithoutEncoders();
@@ -1105,102 +1147,6 @@ public class AutoDriveTeam5291UltimateGoal extends OpModeMasterLinear {
                     if (dblMaxSpeed > 1.0) {
                         dblStepSpeedTempLeft /= dblMaxSpeed;
                         dblStepSpeedTempRight /= dblMaxSpeed;
-                    }
-                }
-                if (mdblRobotParm4 == 1) {
-                    //find the first skystone, and move to the middle of it
-                    if (findSkystone()) {
-                        //calculate where
-                        double frontDistance = ((sensors.distanceFrontLeftCM() + sensors.distanceFrontLeftCM() ) / 2);
-                        fileLogger.writeEvent(3,"Stone 0 " + stones[0]);
-                        fileLogger.writeEvent(3,"Stone 1 " + stones[1]);
-                        fileLogger.writeEvent(3,"Stone 2 " + stones[2]);
-                        fileLogger.writeEvent(3,"Stone 3 " + stones[3]);
-                        fileLogger.writeEvent(3,"Stone 4 " + stones[4]);
-                        fileLogger.writeEvent(3,"Stone 5 " + stones[5]);
-                        if ((frontDistance > 96) && (frontDistance < 104)) {
-                            mLocation = Constants.ObjectColours.OBJECT_SKYSTONE_LEFT;
-                            fileLogger.writeEvent(3,"SkyStone LEFT " + (frontDistance));
-                            stones[0] = false;
-                            mboolFoundSkyStone = true;
-                        } else if ((frontDistance > 79) && (frontDistance < 87)) {
-                            mLocation = Constants.ObjectColours.OBJECT_SKYSTONE_CENTER;
-                            fileLogger.writeEvent(3,"SkyStone CENTER " + (frontDistance));
-                            stones[1] = false;
-                            mboolFoundSkyStone = true;
-                        } else if ((frontDistance > 59) && (frontDistance < 67)) {
-                            mLocation = Constants.ObjectColours.OBJECT_SKYSTONE_RIGHT;
-                            fileLogger.writeEvent(3,"SkyStone RIGHT " + (frontDistance));
-                            stones[2] = false;
-                            mboolFoundSkyStone = true;
-                        } else if ((frontDistance > 39) && (frontDistance < 49)) {
-                            mLocation = Constants.ObjectColours.OBJECT_SKYSTONE_LEFT;
-                            fileLogger.writeEvent(3,"SkyStone RIGHT " + (frontDistance));
-                            stones[3] = false;
-                            mboolFoundSkyStone = true;
-                        } else {
-                            mboolFoundSkyStone = false;
-                        }
-                        if (mboolFoundSkyStone) {
-                            fileLogger.writeEvent(3,"Stone 0 " + stones[0]);
-                            fileLogger.writeEvent(3,"Stone 1 " + stones[1]);
-                            fileLogger.writeEvent(3,"Stone 2 " + stones[2]);
-                            fileLogger.writeEvent(3,"Stone 3 " + stones[3]);
-                            fileLogger.writeEvent(3,"Stone 4 " + stones[4]);
-                            fileLogger.writeEvent(3,"Stone 5 " + stones[5]);
-                            fileLogger.writeEvent(3,"FoundSkyStone Exiting ");
-                            robotDrive.setHardwareDrivePower(0);
-                            /*robotDrive.baseMotor1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-                            robotDrive.baseMotor2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-                            robotDrive.baseMotor3.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-                            robotDrive.baseMotor4.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-                            robotDrive.baseMotor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                            robotDrive.baseMotor2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                            robotDrive.baseMotor3.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                            robotDrive.baseMotor4.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-*/
-                            mintCurrentStateDriveHeading = Constants.stepState.STATE_COMPLETE;
-                            deleteParallelStep();
-                            break;
-                        }
-                    }
-                }
-
-                //Parm 5 is stop when distance from wall is close enough.  this parm is the distance as well
-                //based on the direction of travel
-                if (mdblRobotParm5 > 0 ) {
-                    //Stop at the distance from the wall
-                    double wallDistance;
-                    if (mdblStepDistance > 0) {
-                        wallDistance = ((sensors.distanceFrontLeftIN() + sensors.distanceFrontLeftIN()) / 2);
-                    } else {
-                        wallDistance = ((sensors.distanceRearLeftIN() + sensors.distanceRearLeftIN() ) / 2);
-                    }
-                    fileLogger.writeEvent(3,"Distance From Wall " + wallDistance);
-
-                    if (wallDistance <= mdblRobotParm5) {
-                        fileLogger.writeEvent(3,"Distance Met Exiting ");
-                        robotDrive.setHardwareDrivePower(0);
-                        mintCurrentStateDriveHeading = Constants.stepState.STATE_COMPLETE;
-                        deleteParallelStep();
-                        break;
-                    }
-                } else if (mdblRobotParm5 < 0 ) {
-                    //Stop at the distance from the wall
-                    double wallDistance;
-                    if (mdblStepDistance < 0) {
-                        wallDistance = ((sensors.distanceFrontLeftIN() + sensors.distanceFrontLeftIN()) / 2);
-                    } else {
-                        wallDistance = ((sensors.distanceRearLeftIN() + sensors.distanceRearLeftIN() ) / 2);
-                    }
-                    fileLogger.writeEvent(3,"Distance From Rev Wall " + wallDistance);
-
-                    if (wallDistance <= mdblRobotParm5) {
-                        fileLogger.writeEvent(3,"Distance Met Rev Exiting ");
-                        robotDrive.setHardwareDrivePower(0);
-                        mintCurrentStateDriveHeading = Constants.stepState.STATE_COMPLETE;
-                        deleteParallelStep();
-                        break;
                     }
                 }
 
@@ -1933,19 +1879,19 @@ public class AutoDriveTeam5291UltimateGoal extends OpModeMasterLinear {
                     double distanceFromWall = 0;
                     double distanceToTargetC = 0;
                     double distanceFromWallC = 0;
-                    if (mdblStepDistance < 0) {
-                        //less than is left
-                        distanceToTarget  = sensors.distanceSideLeftIN();
-                        distanceFromWall  = sensors.distanceSideRightIN();
-                        distanceToTargetC = sensors.distanceColorSideLeftIN();
-                        distanceFromWallC = sensors.distanceColorSideRightIN();
-                    } else {
-                        //greater than is right
-                        distanceToTarget  = sensors.distanceSideRightIN();
-                        distanceFromWall  = sensors.distanceSideLeftIN();
-                        distanceToTargetC = sensors.distanceColorSideRightIN();
-                        distanceFromWallC = sensors.distanceColorSideLeftIN();
-                    }
+//                    if (mdblStepDistance < 0) {
+//                        //less than is left
+//                        distanceToTarget  = sensors.distanceSideLeftIN();
+//                        distanceFromWall  = sensors.distanceSideRightIN();
+//                        distanceToTargetC = sensors.distanceColorSideLeftIN();
+//                        distanceFromWallC = sensors.distanceColorSideRightIN();
+//                    } else {
+//                        //greater than is right
+//                        distanceToTarget  = sensors.distanceSideRightIN();
+//                        distanceFromWall  = sensors.distanceSideLeftIN();
+//                        distanceToTargetC = sensors.distanceColorSideRightIN();
+//                        distanceFromWallC = sensors.distanceColorSideLeftIN();
+//                    }
                     fileLogger.writeEvent(3,"Measuring Distance To ObjectR...." + (distanceToTarget));
                     fileLogger.writeEvent(3,"Measuring Distance From WallR...." + (distanceFromWall));
                     fileLogger.writeEvent(3,"Measuring Distance To ObjectC...." + (distanceToTargetC));
@@ -2423,11 +2369,11 @@ public class AutoDriveTeam5291UltimateGoal extends OpModeMasterLinear {
             case STATE_INIT:
                 fileLogger.writeEvent(2,"Initialised");
                 fileLogger.writeEvent(2,"Power: " + String.valueOf(mdblStepSpeed));
-                robotArms.intakeMotor1.setPower(mdblStepSpeed);
+                //robotArms.intakeMotor1.setPower(mdblStepSpeed);
                 mintCurrentStateInTake = Constants.stepState.STATE_RUNNING;
                 break;
             case STATE_RUNNING:
-                robotArms.intakeMotor1.setPower(mdblStepSpeed);
+                //robotArms.intakeMotor1.setPower(mdblStepSpeed);
                 fileLogger.writeEvent(2,"Running");
                 fileLogger.writeEvent(2,"Power: " + String.valueOf(mdblStepSpeed));
                 if (mdblRobotParm1 == 0) {
@@ -2439,8 +2385,8 @@ public class AutoDriveTeam5291UltimateGoal extends OpModeMasterLinear {
 
                 if (mStateTime.milliseconds() >= mdblRobotParm1)
                 {
-                    robotArms.intakeMotor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-                    robotArms.intakeMotor1.setPower(0);
+                    //robotArms.intakeMotor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+                    //robotArms.intakeMotor1.setPower(0);
                     fileLogger.writeEvent(1,"Timer Complete.......");
                     mintCurrentStateInTake = Constants.stepState.STATE_COMPLETE;
                     deleteParallelStep();
@@ -2448,7 +2394,7 @@ public class AutoDriveTeam5291UltimateGoal extends OpModeMasterLinear {
                 }//check timeout value
 
                 if (mStateTime.seconds() > mdblStepTimeout) {
-                    robotArms.intakeMotor1.setPower(0);
+                    //robotArms.intakeMotor1.setPower(0);
                     fileLogger.writeEvent(1,"Timeout:- " + mStateTime.seconds());
                     //  Transition to a new state.
                     mintCurrentStateInTake = Constants.stepState.STATE_COMPLETE;
@@ -2459,162 +2405,162 @@ public class AutoDriveTeam5291UltimateGoal extends OpModeMasterLinear {
     }
 
     private void clawMovement(){
-        fileLogger.setEventTag("clawMovement()");
-
-        switch (mintCurrentStateClawMovement){
-            case STATE_INIT:
-                fileLogger.writeEvent(2,"Initialised");
-                fileLogger.writeEvent(2,"Power: " + String.valueOf(mdblStepSpeed));
-                robotArms.foundationServo.setPosition(mdblStepSpeed);
-                mintCurrentStateClawMovement = Constants.stepState.STATE_RUNNING;
-                break;
-            case STATE_RUNNING:
-                robotArms.foundationServo.setPosition(mdblStepSpeed);
-                fileLogger.writeEvent(2,"Running");
-                fileLogger.writeEvent(2,"Power: " + String.valueOf(mdblStepSpeed));
-                fileLogger.writeEvent(1,"Complete.......");
-                mintCurrentStateClawMovement = Constants.stepState.STATE_COMPLETE;
-                deleteParallelStep();
-                break;
-        }
+//        fileLogger.setEventTag("clawMovement()");
+//
+//        switch (mintCurrentStateClawMovement){
+//            case STATE_INIT:
+//                fileLogger.writeEvent(2,"Initialised");
+//                fileLogger.writeEvent(2,"Power: " + String.valueOf(mdblStepSpeed));
+//                //robotArms.foundationServo.setPosition(mdblStepSpeed);
+//                mintCurrentStateClawMovement = Constants.stepState.STATE_RUNNING;
+//                break;
+//            case STATE_RUNNING:
+//                //robotArms.foundationServo.setPosition(mdblStepSpeed);
+//                fileLogger.writeEvent(2,"Running");
+//                fileLogger.writeEvent(2,"Power: " + String.valueOf(mdblStepSpeed));
+//                fileLogger.writeEvent(1,"Complete.......");
+//                mintCurrentStateClawMovement = Constants.stepState.STATE_COMPLETE;
+//                deleteParallelStep();
+//                break;
+//        }
     }
     private void ejector(){
-        fileLogger.setEventTag("ejector()");
-
-        switch (getMintCurrentStateEjector){
-            case STATE_INIT:
-                fileLogger.writeEvent(2,"Initialised");
-                fileLogger.writeEvent(2,"Power: " + String.valueOf(mdblStepSpeed));
-                robotArms.ejector.setPosition(mdblStepSpeed);
-                getMintCurrentStateEjector = Constants.stepState.STATE_RUNNING;
-                break;
-            case STATE_RUNNING:
-                robotArms.ejector.setPosition(mdblStepSpeed);
-                fileLogger.writeEvent(2,"Running");
-                fileLogger.writeEvent(2,"Power: " + String.valueOf(mdblStepSpeed));
-                fileLogger.writeEvent(1,"Complete.......");
-                getMintCurrentStateEjector = Constants.stepState.STATE_COMPLETE;
-                deleteParallelStep();
-                break;
-        }
+//        fileLogger.setEventTag("ejector()");
+//
+//        switch (getMintCurrentStateEjector){
+//            case STATE_INIT:
+//                fileLogger.writeEvent(2,"Initialised");
+//                fileLogger.writeEvent(2,"Power: " + String.valueOf(mdblStepSpeed));
+////                robotArms.ejector.setPosition(mdblStepSpeed);
+//                getMintCurrentStateEjector = Constants.stepState.STATE_RUNNING;
+//                break;
+//            case STATE_RUNNING:
+////                robotArms.ejector.setPosition(mdblStepSpeed);
+//                fileLogger.writeEvent(2,"Running");
+//                fileLogger.writeEvent(2,"Power: " + String.valueOf(mdblStepSpeed));
+//                fileLogger.writeEvent(1,"Complete.......");
+//                getMintCurrentStateEjector = Constants.stepState.STATE_COMPLETE;
+//                deleteParallelStep();
+//                break;
+//        }
     }
 
     private void grabBlock(){
-        fileLogger.setEventTag("GrabFoundation()");
-
-        switch (mintCurrentStateGrabBlock){
-            case STATE_INIT:
-                fileLogger.writeEvent(2,"Initialised");
-                fileLogger.writeEvent(2,"State: " + String.valueOf(mdblRobotParm1));
-                fileLogger.writeEvent(2,"Timer: " + String.valueOf(mStateTime.milliseconds()));
-                mintCurrentStateGrabBlock = Constants.stepState.STATE_RUNNING;
-                break;
-            case STATE_RUNNING:
-                fileLogger.writeEvent(2,"Timer: " + String.valueOf(mStateTime.milliseconds()));
-                switch ((int)mdblRobotParm1) {
-                    case 0:
-                        if (ourRobotConfig.getAllianceColor().equals("Red")) {
-                            //red alliance
-                            robotArms.rightWristServo.setPosition(1);
-                            robotArms.rightArmServo.setPosition(0.0);
-                            robotArms.rightClampServo.setPosition(0.15);
-                        } else {
-                            //blue alliance
-                            robotArms.leftWristServo.setPosition(0.05);
-                            robotArms.leftArmServo.setPosition(0);
-                            robotArms.leftClampServo.setPosition(0.15);
-                        }
-                        mintCurrentStateGrabBlock = Constants.stepState.STATE_COMPLETE;
-                        deleteParallelStep();
-                        break;
-                    case 1:
-                        if (ourRobotConfig.getAllianceColor().equals("Red")) {
-                            //red alliance
-                            robotArms.rightArmServo.setPosition(1);
-                            robotArms.rightClampServo.setPosition(1);
-                        } else {
-                            //blue alliance
-                            robotArms.leftArmServo.setPosition(1);
-                            robotArms.leftClampServo.setPosition(1);
-                        }
-                        mintCurrentStateGrabBlock = Constants.stepState.STATE_COMPLETE;
-                        deleteParallelStep();
-                        break;
-                    case 2:
-                        if (ourRobotConfig.getAllianceColor().equals("Red")) {
-                            //red alliance
-                            robotArms.rightClampServo.setPosition(0);
-                        } else {
-                            //blue alliance
-                            robotArms.leftClampServo.setPosition(0);
-                        }
-                        mintCurrentStateGrabBlock = Constants.stepState.STATE_COMPLETE;
-                        deleteParallelStep();
-                        break;
-                    case 3:
-                        if (ourRobotConfig.getAllianceColor().equals("Red")) {
-                            //red alliance
-                            robotArms.rightArmServo.setPosition(0.55);
-                        } else {
-                            //blue alliance
-                            robotArms.leftArmServo.setPosition(0.55);
-                        }
-                        mintCurrentStateGrabBlock = Constants.stepState.STATE_COMPLETE;
-                        deleteParallelStep();
-                        break;
-                    case 4:
-                        if (ourRobotConfig.getAllianceColor().equals("Red")) {
-                            //red alliance
-                            robotArms.rightWristServo.setPosition(0.25);
-                        } else {
-                            //blue alliance
-                            robotArms.leftWristServo.setPosition(0.85);
-                        }
-                        mintCurrentStateGrabBlock = Constants.stepState.STATE_COMPLETE;
-                        deleteParallelStep();
-                        break;
-                    case 5:
-                        if (ourRobotConfig.getAllianceColor().equals("Red")) {
-                            //red alliance
-                            robotArms.rightWristServo.setPosition(1);
-                        } else {
-                            //blue alliance
-                            robotArms.leftWristServo.setPosition(0.05);
-                        }
-                        mintCurrentStateGrabBlock = Constants.stepState.STATE_COMPLETE;
-                        deleteParallelStep();
-                        break;
-                    case 8:
-                        if (ourRobotConfig.getAllianceColor().equals("Red")) {
-                            //red alliance
-                            robotArms.rightArmServo.setPosition(1);
-                        } else {
-                            //blue alliance
-                            robotArms.leftArmServo.setPosition(1);
-                        }
-                        mintCurrentStateGrabBlock = Constants.stepState.STATE_COMPLETE;
-                        deleteParallelStep();
-                        break;
-                    case 9:
-                        if (ourRobotConfig.getAllianceColor().equals("Red")) {
-                            //red alliance
-                            robotArms.rightClampServo.setPosition(0.6);
-                        } else {
-                            //blue alliance
-                            robotArms.leftClampServo.setPosition(0.6);
-                        }
-                        mintCurrentStateGrabBlock = Constants.stepState.STATE_COMPLETE;
-                        deleteParallelStep();
-                        break;
-                }
-                if (mStateTime.seconds() > mdblStepTimeout) {
-                    fileLogger.writeEvent(1,"Timeout:- " + mStateTime.seconds());
-                    //  Transition to a new state.
-                    mintCurrentStateGrabBlock = Constants.stepState.STATE_COMPLETE;
-                    deleteParallelStep();
-                }
-                break;
-        }
+//        fileLogger.setEventTag("GrabFoundation()");
+//
+//        switch (mintCurrentStateGrabBlock){
+//            case STATE_INIT:
+//                fileLogger.writeEvent(2,"Initialised");
+//                fileLogger.writeEvent(2,"State: " + String.valueOf(mdblRobotParm1));
+//                fileLogger.writeEvent(2,"Timer: " + String.valueOf(mStateTime.milliseconds()));
+//                mintCurrentStateGrabBlock = Constants.stepState.STATE_RUNNING;
+//                break;
+//            case STATE_RUNNING:
+//                fileLogger.writeEvent(2,"Timer: " + String.valueOf(mStateTime.milliseconds()));
+//                switch ((int)mdblRobotParm1) {
+//                    case 0:
+//                        if (ourRobotConfig.getAllianceColor().equals("Red")) {
+//                            //red alliance
+//                            //robotArms.rightWristServo.setPosition(1);
+//                            //robotArms.rightArmServo.setPosition(0.0);
+//                            //robotArms.rightClampServo.setPosition(0.15);
+//                        } else {
+//                            //blue alliance
+//                            //robotArms.leftWristServo.setPosition(0.05);
+//                            //robotArms.leftArmServo.setPosition(0);
+//                            //robotArms.leftClampServo.setPosition(0.15);
+//                        }
+//                        mintCurrentStateGrabBlock = Constants.stepState.STATE_COMPLETE;
+//                        deleteParallelStep();
+//                        break;
+//                    case 1:
+//                        if (ourRobotConfig.getAllianceColor().equals("Red")) {
+//                            //red alliance
+//                            //robotArms.rightArmServo.setPosition(1);
+//                            //robotArms.rightClampServo.setPosition(1);
+//                        } else {
+//                            //blue alliance
+//                            //robotArms.leftArmServo.setPosition(1);
+//                            //robotArms.leftClampServo.setPosition(1);
+//                        }
+//                        mintCurrentStateGrabBlock = Constants.stepState.STATE_COMPLETE;
+//                        deleteParallelStep();
+//                        break;
+//                    case 2:
+//                        if (ourRobotConfig.getAllianceColor().equals("Red")) {
+//                            //red alliance
+//                            //robotArms.rightClampServo.setPosition(0);
+//                        } else {
+//                            //blue alliance
+//                            //robotArms.leftClampServo.setPosition(0);
+//                        }
+//                        mintCurrentStateGrabBlock = Constants.stepState.STATE_COMPLETE;
+//                        deleteParallelStep();
+//                        break;
+//                    case 3:
+//                        if (ourRobotConfig.getAllianceColor().equals("Red")) {
+//                            //red alliance
+//                            //robotArms.rightArmServo.setPosition(0.55);
+//                        } else {
+//                            //blue alliance
+//                            //robotArms.leftArmServo.setPosition(0.55);
+//                        }
+//                        mintCurrentStateGrabBlock = Constants.stepState.STATE_COMPLETE;
+//                        deleteParallelStep();
+//                        break;
+//                    case 4:
+//                        if (ourRobotConfig.getAllianceColor().equals("Red")) {
+//                            //red alliance
+//                            //robotArms.rightWristServo.setPosition(0.25);
+//                        } else {
+//                            //blue alliance
+//                            //robotArms.leftWristServo.setPosition(0.85);
+//                        }
+//                        mintCurrentStateGrabBlock = Constants.stepState.STATE_COMPLETE;
+//                        deleteParallelStep();
+//                        break;
+//                    case 5:
+//                        if (ourRobotConfig.getAllianceColor().equals("Red")) {
+//                            //red alliance
+//                            //robotArms.rightWristServo.setPosition(1);
+//                        } else {
+//                            //blue alliance
+//                            //robotArms.leftWristServo.setPosition(0.05);
+//                        }
+//                        mintCurrentStateGrabBlock = Constants.stepState.STATE_COMPLETE;
+//                        deleteParallelStep();
+//                        break;
+//                    case 8:
+//                        if (ourRobotConfig.getAllianceColor().equals("Red")) {
+//                            //red alliance
+//                            //robotArms.rightArmServo.setPosition(1);
+//                        } else {
+//                            //blue alliance
+//                            //robotArms.leftArmServo.setPosition(1);
+//                        }
+//                        mintCurrentStateGrabBlock = Constants.stepState.STATE_COMPLETE;
+//                        deleteParallelStep();
+//                        break;
+//                    case 9:
+//                        if (ourRobotConfig.getAllianceColor().equals("Red")) {
+//                            //red alliance
+//                            robotArms.rightClampServo.setPosition(0.6);
+//                        } else {
+//                            //blue alliance
+//                            robotArms.leftClampServo.setPosition(0.6);
+//                        }
+//                        mintCurrentStateGrabBlock = Constants.stepState.STATE_COMPLETE;
+//                        deleteParallelStep();
+//                        break;
+//                }
+//                if (mStateTime.seconds() > mdblStepTimeout) {
+//                    fileLogger.writeEvent(1,"Timeout:- " + mStateTime.seconds());
+//                    //  Transition to a new state.
+//                    mintCurrentStateGrabBlock = Constants.stepState.STATE_COMPLETE;
+//                    deleteParallelStep();
+//                }
+//                break;
+//        }
     }
 
     private void flywheel(){
@@ -2679,21 +2625,21 @@ public class AutoDriveTeam5291UltimateGoal extends OpModeMasterLinear {
 
 
     private boolean findSkystone() {
-        String tag = fileLogger.getEventTag();
-        fileLogger.setEventTag("findSkystone()");
-        fileLogger.writeEvent(3, "Initialised");
-        boolean black = false;
-        if (ourRobotConfig.getAllianceColor().equals("Red")) {
-            //red alliance
-            black = (sensors.distanceColorSideRight().alpha() / sensors.distanceColorSideRight().red()) > 2.9 ? true : false;
-            fileLogger.writeEvent(3, "In Alliance RED, FOUND BLACK " + black);
-        } else {
-            //blue alliance
-            black = (sensors.distanceColorSideLeft().alpha() / sensors.distanceColorSideLeft().red()) > 2.9 ? true : false;
-            fileLogger.writeEvent(3, "In Alliance BLUE, FOUND BLACK " + black);
-        }
-        fileLogger.setEventTag(tag);
-        return black;
+//        String tag = fileLogger.getEventTag();
+//        fileLogger.setEventTag("findSkystone()");
+//        fileLogger.writeEvent(3, "Initialised");
+//        boolean black = false;
+//        if (ourRobotConfig.getAllianceColor().equals("Red")) {
+//            //red alliance
+//            black = (sensors.distanceColorSideRight().alpha() / sensors.distanceColorSideRight().red()) > 2.9 ? true : false;
+//            fileLogger.writeEvent(3, "In Alliance RED, FOUND BLACK " + black);
+//        } else {
+//            //blue alliance
+//            black = (sensors.distanceColorSideLeft().alpha() / sensors.distanceColorSideLeft().red()) > 2.9 ? true : false;
+//            fileLogger.writeEvent(3, "In Alliance BLUE, FOUND BLACK " + black);
+//        }
+//        fileLogger.setEventTag(tag);
+        return false;
     }
 
     private void pickStone (int stone) {

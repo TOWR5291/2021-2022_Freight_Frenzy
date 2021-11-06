@@ -1,9 +1,14 @@
 package club.towr5291.opmodes;
 
+import android.app.LoaderManager;
+import android.os.Looper;
+import android.util.Log;
+
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.RobotLog;
 
 import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.InstallCallbackInterface;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 
@@ -22,9 +27,9 @@ public abstract class OpModeMasterLinear extends LinearOpMode{
         return initialized;
     }
 
-
     protected void initOpenCv()
     {
+//        hardwareMap.appContext.getMainLooper().prepare();
         BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(hardwareMap.appContext)
         {
             @Override
