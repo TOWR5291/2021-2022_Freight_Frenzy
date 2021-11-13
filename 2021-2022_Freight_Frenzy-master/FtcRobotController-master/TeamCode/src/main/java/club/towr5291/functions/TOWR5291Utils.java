@@ -251,5 +251,11 @@ public class TOWR5291Utils {
         }
     }   //sleep
 
+    public static double differenceBetweenAngles(double angle1, double angle2) {
+        double d = Math.abs(angle1 - angle2) % 360;
+        double r = d > 180 ? 360 - d : d;
 
+        double sign = (angle1 - angle2 >= 0 && angle1 - angle2 <= 180) || (angle1 - angle2 <= -180 && angle1 - angle2 >= 360) ? 1 : -1;
+        return r * sign;
+    }
 }

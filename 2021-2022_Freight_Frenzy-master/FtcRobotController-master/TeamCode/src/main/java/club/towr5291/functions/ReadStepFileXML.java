@@ -18,7 +18,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import club.towr5291.libraries.LibraryStateSegAutoRoverRuckus;
 import club.towr5291.libraries.robotConfig;
 
-
 public class ReadStepFileXML {
 
     public HashMap<String, LibraryStateSegAutoRoverRuckus> autonomousStep = new HashMap<>();

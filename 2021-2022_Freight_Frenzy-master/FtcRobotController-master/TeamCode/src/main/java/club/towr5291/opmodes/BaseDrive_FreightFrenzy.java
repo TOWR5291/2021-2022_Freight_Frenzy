@@ -2,31 +2,29 @@ package club.towr5291.opmodes;
 
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
-import android.renderscript.ScriptGroup;
 import android.widget.TextView;
-
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.Gyroscope;
+import com.qualcomm.robotcore.hardware.IntegratingGyroscope;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
-
 import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
 import org.firstinspires.ftc.teamcode.R;
-
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AngularVelocity;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import club.towr5291.functions.Constants;
 import club.towr5291.functions.FileLogger;
-import club.towr5291.functions.TOWR5291Tick;
-import club.towr5291.functions.TOWR5291Toggle;
 import club.towr5291.libraries.LibraryMotorType;
 import club.towr5291.libraries.TOWRDashBoard;
 import club.towr5291.libraries.robotConfig;
 import club.towr5291.libraries.robotConfigSettings;
 import club.towr5291.robotconfig.HardwareArmMotorsFreightFrenzy;
-import club.towr5291.robotconfig.HardwareArmMotorsSkyStone;
-import club.towr5291.robotconfig.HardwareArmMotorsUltimateGoal;
 import club.towr5291.robotconfig.HardwareDriveMotors;
+
 // ********************************************************
 // *** Created by AKR 10/09/2021                        ***
 // *** TOWR 5291 Freight Frenzy 2021                    ***
@@ -49,11 +47,11 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
     final String TAG = "TeleOp";
     private ElapsedTime runtime = new ElapsedTime();
     private robotConfig ourRobotConfig;
-
     private int debug;
 
     private static TOWRDashBoard dashboard = null;
     public static TOWRDashBoard getDashboard() {return dashboard;}
+    private Gyroscope imu;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -103,6 +101,9 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
 
         dashboard.displayPrintf(1, "Waiting for Start");
 
+        imu = hardwareMap.get(Gyroscope.class, "imu");
+
+
         // setup drive motors
         float LStickX_Ltd, LStickX_RL, LStickX_prev;
         float LStickX_inc = 1.0f;       //  Increase rate of LStickX
@@ -120,7 +121,7 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
         float RStickX_inc = 1.0f;       //  Increase rate of RStickX
         float RStickX_dec = 1.0f;       //  Decrease rate of RStickX
         float RStickX_Coeff = 3.0f;     //  RStickX Shaping Coefficient
-        float RStickX_Lim = 0.5f;       // RStickX Max Power
+        float RStickX_Lim = 1.0f;       // RStickX Max Power
 
         // Setup Lift Motor
         int TrgtPos;
@@ -150,18 +151,17 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
         dashboard.displayPrintf(4, "--------------------");
         dashboard.displayPrintf(8, "Controller B Options");
         dashboard.displayPrintf(9, "--------------------");
-
-        // ********************************************************
-        // *** The main loop.  This is where the action happens ***
-        // ********************************************************
         telemetry.clearAll();
 
-        boolean prev_LB2 = false;
-        double TrgtPow = 0;
+        //boolean prev_LB2 = false;
+        double TrgtPow;
         LStickX_prev = 0;
         RStickX_prev = 0;
         LStickY_prev = 0;
 
+        // ********************************************************
+        // *** The main loop.  This is where the action happens ***
+        // ********************************************************
         while (opModeIsActive()) {
             fileLogger.writeEvent(1, "In Main Loop");
             dashboard.displayPrintf(5, "Controller Mode -- ", "Mecanum Drive Freight Frenzy");
@@ -169,21 +169,27 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
 
             // Rate Limit Stick Measurements
             // this treats a movement away from 0 as an increase, and movement towards zero as a decrease
-            LStickX_RL = RateLimitInputVal(gamepad1.left_stick_x, LStickX_inc, LStickX_dec, LStickX_prev);
-            LStickY_RL = RateLimitInputVal(gamepad1.left_stick_y, LStickY_inc, LStickY_dec, LStickY_prev);
-            RStickX_RL = RateLimitInputVal(gamepad1.right_stick_x, RStickX_inc, RStickX_dec, RStickX_prev);
+            if (gamepad1.dpad_left){ // Use dpad for debug
+                DriveMotorControl(0.5F,0,0);
+            } else if (gamepad1.dpad_right){
+                DriveMotorControl( -0.5F,0,0);
+            }else { // Use Stick Movements // Use dpad for debug
+                LStickX_RL = RateLimitInputVal(gamepad1.left_stick_x, LStickX_inc, LStickX_dec, LStickX_prev);
+                LStickY_RL = RateLimitInputVal(gamepad1.left_stick_y, LStickY_inc, LStickY_dec, LStickY_prev);
+                RStickX_RL = RateLimitInputVal(gamepad1.right_stick_x, RStickX_inc, RStickX_dec, RStickX_prev);
 
-            // Shape Stick Measurments
-            LStickX_Ltd = (float) (Math.pow(Math.abs(LStickX_RL),LStickX_Coeff) * Math.signum(LStickX_RL)*LStickX_Lim);
-            LStickY_Ltd = (float) (Math.pow(Math.abs(LStickY_RL),LStickY_Coeff) * Math.signum(LStickY_RL)*LStickY_Lim);
-            RStickX_Ltd = (float) (Math.pow(Math.abs(RStickX_RL),RStickX_Coeff) * Math.signum(RStickX_RL)*RStickX_Lim);
+                // Shape Stick Measurments
+                LStickX_Ltd = (float) (Math.pow(Math.abs(LStickX_RL), LStickX_Coeff) * Math.signum(LStickX_RL) * LStickX_Lim);
+                LStickY_Ltd = (float) (Math.pow(Math.abs(LStickY_RL), LStickY_Coeff) * Math.signum(LStickY_RL) * LStickY_Lim);
+                RStickX_Ltd = (float) (Math.pow(Math.abs(RStickX_RL), RStickX_Coeff) * Math.signum(RStickX_RL) * RStickX_Lim);
 
-            // *** Call liftMotorPower and execute arm movement         ***
-            DriveMotorControl(LStickX_Ltd,LStickY_Ltd, RStickX_Ltd );        // *** Call DriveMotorControl and execute movement          ***
+                // *** Call liftMotorPower and execute arm movement         ***
+                DriveMotorControl(LStickX_Ltd, LStickY_Ltd, RStickX_Ltd);        // *** Call DriveMotorControl and execute movement          ***
 
-            LStickX_prev = LStickX_RL;
-            LStickY_prev = LStickY_RL;
-            RStickX_prev = RStickX_RL;
+                LStickX_prev = LStickX_RL;
+                LStickY_prev = LStickY_RL;
+                RStickX_prev = RStickX_RL;
+            }
 
             // ****************************************************************************************
             // ***                      Robot Arm                                                   ***
@@ -209,40 +215,34 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
                 robotArms.liftMotor1.setPower(0);
                 robotArms.liftMotor1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
                 robotArms.liftMotor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                TrgtPos = robotArms.liftMotor1.getCurrentPosition();
                 robotArms.liftMotor1.setPower(0);
                 TrgtPos = lvl0_height;
-                hold = true;
-                //gamepad2.rumble(1000);
                 hold = false;
-            } else if (gamepad2.dpad_down){     // *** move to zero                                 ***
-                robotArms.liftMotor1.setPower(TrgtPow);
-                TrgtPos = lvl0_height;
-                hold = true;
-            } else if (gamepad2.dpad_left){ // *** move to first tray height                        ***
-                robotArms.liftMotor1.setPower(TrgtPow);
-                TrgtPos = lvl1_height;
-                hold = true;
-            } else if (gamepad2.dpad_right){ // *** move to second tray height                      ***
-                robotArms.liftMotor1.setPower(TrgtPow);
-                TrgtPos = lvl2_height;
-                hold = true;
-            } else if (gamepad2.dpad_up){ // *** move to third tray height                          ***
-                robotArms.liftMotor1.setPower(TrgtPow);
-                TrgtPos = lvl3_height;
-                hold = true;
+//            } else if (gamepad2.dpad_down){     // *** move to zero                                 ***
+//                robotArms.liftMotor1.setPower(TrgtPow);
+//                TrgtPos = lvl0_height;
+//                hold = true;
+//            } else if (gamepad2.dpad_left){ // *** move to first tray height                        ***
+//                robotArms.liftMotor1.setPower(TrgtPow);
+//                TrgtPos = lvl1_height;
+//                hold = true;
+//            } else if (gamepad2.dpad_right){ // *** move to second tray height                      ***
+//                robotArms.liftMotor1.setPower(TrgtPow);
+//                TrgtPos = lvl2_height;
+//                hold = true;
+//            } else if (gamepad2.dpad_up){ // *** move to third tray height                          ***
+//                robotArms.liftMotor1.setPower(TrgtPow);
+//                TrgtPos = lvl3_height;
+//                hold = true;
             } else {
                 if (hold) {
-                    //robotArms.liftMotor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                    //robotArms.liftMotor1.setPower(0);
                     robotArms.liftMotor1.setTargetPosition(TrgtPos);
                     robotArms.liftMotor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                    //robotArms.liftMotor1.setTargetPosition(TrgtPos);
                     robotArms.liftMotor1.setPower(TrgtPow);
                 } else {
                     robotArms.liftMotor1.setPower(0);
                 }
-            } // End of Robot Arm if statment
+            } // End of Robot Arm if statement
 
             // ****************************************************************************************
             // ***                     gripper claw                                                 ***
@@ -295,10 +295,7 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
             telemetry.addLine("Flywheel Speed: " + robotArms.flywheelMotor.getVelocity());
             telemetry.addLine("Lift Motor Pos: " + robotArms.liftMotor1.getCurrentPosition());
             telemetry.addLine("          Trgt: " + TrgtPos);
-            telemetry.addLine();
-            telemetry.addLine("Rx:      " + gamepad1.right_stick_x);
-            telemetry.addLine("Rx RL:   " + (double) ((int) (RStickX_RL*100+.5))/100f);
-            telemetry.addLine("Rx Lim:  " + (double) ((int) (RStickX_Ltd*100+.5))/100f);
+
             telemetry.update();
 
         }// while (opModeIsActive)
@@ -348,18 +345,14 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
         // ********************************************************
 
         double mtr_pwrmax;
-        double mtr1_pwrreq;
-        double mtr1_pwrcmd;
-        double mtr2_pwrreq;
-        double mtr2_pwrcmd;
-        double mtr3_pwrreq;
-        double mtr3_pwrcmd;
-        double mtr4_pwrreq;
-        double mtr4_pwrcmd;
+        double mtr1_pwrreq, mtr1_pwrcmd; // Left Front Motor
+        double mtr2_pwrreq, mtr2_pwrcmd;
+        double mtr3_pwrreq, mtr3_pwrcmd;
+        double mtr4_pwrreq, mtr4_pwrcmd;
 
         // *** Enhanced Proportional Motor Command   Calculation            ***
-        // *** Clip max motor power req geometricaly                        ***
-        mtr1_pwrreq = 0 - LStickY_Lim + LStickX_Lim + RStickX_Lim; //Left Front
+        // *** Vector Clip max motor power req                              ***
+        mtr1_pwrreq = 0 - LStickY_Lim + LStickX_Lim + RStickX_Lim;
         mtr2_pwrreq = 0 - LStickY_Lim - LStickX_Lim + RStickX_Lim;
         mtr3_pwrreq = 0 - LStickY_Lim - LStickX_Lim - RStickX_Lim;
         mtr4_pwrreq = 0 - LStickY_Lim + LStickX_Lim - RStickX_Lim;
@@ -376,10 +369,6 @@ public class BaseDrive_FreightFrenzy extends OpModeMasterLinear{
         robotDrive.baseMotor3.setPower(mtr3_pwrcmd);
         robotDrive.baseMotor4.setPower(mtr4_pwrcmd);
 
-        // robotDrive.baseMotor1.setPower(Math.pow((Range.clip((0 - gamepad1.left_stick_y + gamepad1.left_stick_x + gamepad1.right_stick_x)/mtr_pwrmax, -1, 1)),3));
-            // robotDrive.baseMotor2.setPower(Math.pow((Range.clip((0 - gamepad1.left_stick_y - gamepad1.left_stick_x + gamepad1.right_stick_x)/mtr_pwrmax, -1, 1)),3));
-            // robotDrive.baseMotor3.setPower(Math.pow((Range.clip((0 - gamepad1.left_stick_y - gamepad1.left_stick_x - gamepad1.right_stick_x)/mtr_pwrmax, -1, 1)),3));
-            // robotDrive.baseMotor4.setPower(Math.pow((Range.clip((0 - gamepad1.left_stick_y + gamepad1.left_stick_x - gamepad1.right_stick_x)/mtr_pwrmax, -1, 1)),3));
     } // DriveMotorControl
 
 } // public class

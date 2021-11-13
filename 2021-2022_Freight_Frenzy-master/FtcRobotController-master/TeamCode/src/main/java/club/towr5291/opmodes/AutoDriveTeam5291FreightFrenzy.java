@@ -151,19 +151,6 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
     public FileLogger fileLogger;
     private int debug = 3;
 
-    //adafruit IMU
-    // The IMU sensor object
-    private BNO055IMU imu;
-
-    private double mdblTurnAbsoluteGyro;
-    private double mdblGyrozAccumulated;
-    private double mdblTankTurnGyroRequiredHeading;
-    private int mintStableCount;
-    private String mstrWiggleDir;
-    private double mdblPowerBoost;
-    private int mintPowerBoostCount;
-
-    //Camera Webcam
     private WebcamName robotWebcam;
 
     //vuforia localisation variables
@@ -201,6 +188,7 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
     private Constants.stepState getMintCurrentStateEjector;                     // Control ejector
     private Constants.stepState mintCurrentStateGrabBlock;                      // Control arm to grab block
     private Constants.stepState mintCurrentStepFindGoldSS;                      // test
+    private Constants.stepState mintCurrentStateFlywheelPower;
 
     private boolean mboolFoundSkyStone = false;
 
@@ -360,6 +348,19 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
         powerTable.put(String.valueOf(12), ".6");
         powerTable.put(String.valueOf(15), ".8");
     }
+    //adafruit IMU
+    // The IMU sensor object
+    private BNO055IMU imu;
+
+    private double mdblTurnAbsoluteGyro;
+    private double mdblGyrozAccumulated;
+    private double mdblTankTurnGyroRequiredHeading;
+    private int mintStableCount;
+    private String mstrWiggleDir;
+    private double mdblPowerBoost;
+    private int mintPowerBoostCount;
+
+    //Camera Webcam
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -446,7 +447,7 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
         BNO055IMU.Parameters parametersAdafruitImu = new BNO055IMU.Parameters();
         parametersAdafruitImu.angleUnit = BNO055IMU.AngleUnit.DEGREES;
         parametersAdafruitImu.accelUnit = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
-        parametersAdafruitImu.calibrationDataFile = "AdafruitIMUCalibration.json"; // see the calibration sample opmode
+        parametersAdafruitImu.calibrationDataFile = "BN055IMUCalibration.json"; // see the calibration sample opmode
         parametersAdafruitImu.loggingEnabled = true;
         parametersAdafruitImu.loggingTag = "IMU";
         parametersAdafruitImu.accelerationIntegrationAlgorithm = new JustLoggingAccelerationIntegrator();
@@ -473,51 +474,7 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
         robotDrive.init(fileLogger, hardwareMap, robotConfigSettings.robotConfigChoice.valueOf(ourRobotConfig.getRobotConfigBase()), LibraryMotorType.MotorTypes.valueOf(ourRobotConfig.getRobotMotorType()));
         robotDrive.setHardwareDriveResetEncoders();
         robotDrive.setHardwareDriveRunUsingEncoders();
-        robotDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        getMotorPIDFMotor1 = robotDrive.getMotorPIDF(1);
-        getMotorPIDFMotor2 = robotDrive.getMotorPIDF(2);
-        getMotorPIDFMotor3 = robotDrive.getMotorPIDF(3);
-        getMotorPIDFMotor4 = robotDrive.getMotorPIDF(4);
-        newMotorPIDFMotor1 = getMotorPIDFMotor1;
-        newMotorPIDFMotor2 = getMotorPIDFMotor2;
-        newMotorPIDFMotor3 = getMotorPIDFMotor3;
-        newMotorPIDFMotor4 = getMotorPIDFMotor4;
-        fileLogger.writeEvent("(orig Motor 1) P " + getMotorPIDFMotor1.p + ", I " + getMotorPIDFMotor1.i + ", D " + getMotorPIDFMotor1.d + ", F " + getMotorPIDFMotor1.f);
-        fileLogger.writeEvent("(orig Motor 2) P " + getMotorPIDFMotor2.p + ", I " + getMotorPIDFMotor2.i + ", D " + getMotorPIDFMotor2.d + ", F " + getMotorPIDFMotor2.f);
-        fileLogger.writeEvent("(orig Motor 3) P " + getMotorPIDFMotor3.p + ", I " + getMotorPIDFMotor3.i + ", D " + getMotorPIDFMotor3.d + ", F " + getMotorPIDFMotor3.f);
-        fileLogger.writeEvent("(orig Motor 4) P " + getMotorPIDFMotor4.p + ", I " + getMotorPIDFMotor4.i + ", D " + getMotorPIDFMotor4.d + ", F " + getMotorPIDFMotor4.f);
-        newMotorPIDFMotor1.p = getMotorPIDFMotor1.p + 20.5;
-        newMotorPIDFMotor2.p = getMotorPIDFMotor2.p + 20.5;
-        newMotorPIDFMotor3.p = getMotorPIDFMotor3.p + 20.5;
-        newMotorPIDFMotor4.p = getMotorPIDFMotor4.p + 20.5;
-        newMotorPIDFMotor1.i = getMotorPIDFMotor1.i + 0.037;
-        newMotorPIDFMotor2.i = getMotorPIDFMotor2.i + 0.037;
-        newMotorPIDFMotor3.i = getMotorPIDFMotor3.i + 0.037;
-        newMotorPIDFMotor4.i = getMotorPIDFMotor4.i + 0.037;
-        newMotorPIDFMotor1.d = getMotorPIDFMotor1.d;
-        newMotorPIDFMotor2.d = getMotorPIDFMotor2.d;
-        newMotorPIDFMotor3.d = getMotorPIDFMotor3.d;
-        newMotorPIDFMotor4.d = getMotorPIDFMotor4.d;
-        newMotorPIDFMotor1.f = 0;//getMotorPIDFMotor1.f + 2;
-        newMotorPIDFMotor2.f = 0;//getMotorPIDFMotor2.f + 2;
-        newMotorPIDFMotor3.f = 0;//getMotorPIDFMotor3.f + 2;
-        newMotorPIDFMotor4.f = 0;//getMotorPIDFMotor4.f + 2;
-
-        //set new PIDF Values
-        robotDrive.setMotorPIDF(newMotorPIDFMotor1,1);
-        robotDrive.setMotorPIDF(newMotorPIDFMotor2,2);
-        robotDrive.setMotorPIDF(newMotorPIDFMotor3,3);
-        robotDrive.setMotorPIDF(newMotorPIDFMotor4,4);
-
-        getMotorPIDFMotor1 = robotDrive.getMotorPIDF(1);
-        getMotorPIDFMotor2 = robotDrive.getMotorPIDF(2);
-        getMotorPIDFMotor3 = robotDrive.getMotorPIDF(3);
-        getMotorPIDFMotor4 = robotDrive.getMotorPIDF(4);
-        fileLogger.writeEvent("(new Motor 1) P " + getMotorPIDFMotor1.p + ", I " + getMotorPIDFMotor1.i + ", D " + getMotorPIDFMotor1.d + ", F " + getMotorPIDFMotor1.f);
-        fileLogger.writeEvent("(new Motor 2) P " + getMotorPIDFMotor2.p + ", I " + getMotorPIDFMotor2.i + ", D " + getMotorPIDFMotor2.d + ", F " + getMotorPIDFMotor2.f);
-        fileLogger.writeEvent("(new Motor 3) P " + getMotorPIDFMotor3.p + ", I " + getMotorPIDFMotor3.i + ", D " + getMotorPIDFMotor3.d + ", F " + getMotorPIDFMotor3.f);
-        fileLogger.writeEvent("(new Motor 4) P " + getMotorPIDFMotor4.p + ", I " + getMotorPIDFMotor4.i + ", D " + getMotorPIDFMotor4.d + ", F " + getMotorPIDFMotor4.f);
-
+        robotDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         fileLogger.writeEvent(1, "robotConfigTeam #       " + ourRobotConfig.getTeamNumber());
         fileLogger.writeEvent(1, "Alliance Colour         " + ourRobotConfig.getAllianceColor());
@@ -552,14 +509,14 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
         //load all the vuforia stuff
 //        LibraryVuforiaUltimateGoal UltimateGoalVuforia = new LibraryVuforiaUltimateGoal();
 //        VuforiaTrackables UltimateGoalTrackables;
-        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
-        String VUFORIA_KEY = "ARzQPln/////AAABmeFYvYWfk0hLnRCbDsgAdRQ6cpwiLwJmmPsCF3BJaJyZu2OdJkuwc4s/mOfS/4OWz4amTlquwtxDDwds3Ma7WCMIxP2OJ3yo8xkEyqDc61QdDFy3NgKO3RwGwLxtkpjikvWG3y45Yq84mbO0U3mj3NXrNtLl4yckElS7+aaN2VV8ZF29MkxCnCK24w+uPgehkjCyliBnmKhlNETx20SWhsH9r8NC4CmbBWO17sGc7kCeBErLja/gRvUjYEHYoz19zA2GRa7uhYLdxTQWEIUUtARvihAXjlo7ZHK/MiQkQhbhpPi4Pv9HCQ+2HeidKCaBndTr2g56TU+yFu1D4bg/JfLt6gRos2sgmb7K6iZGkcMw";
-        parameters.vuforiaLicenseKey = VUFORIA_KEY;
-        parameters.cameraName = hardwareMap.get(WebcamName.class, "Webcam1");
-        VuforiaLocalizer vuforia = ClassFactory.getInstance().createVuforia(parameters);
-        vuforia.enableConvertFrameToBitmap();
-        AppUtil.getInstance().ensureDirectoryExists(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES));
+//        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+//        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
+//        String VUFORIA_KEY = "ARzQPln/////AAABmeFYvYWfk0hLnRCbDsgAdRQ6cpwiLwJmmPsCF3BJaJyZu2OdJkuwc4s/mOfS/4OWz4amTlquwtxDDwds3Ma7WCMIxP2OJ3yo8xkEyqDc61QdDFy3NgKO3RwGwLxtkpjikvWG3y45Yq84mbO0U3mj3NXrNtLl4yckElS7+aaN2VV8ZF29MkxCnCK24w+uPgehkjCyliBnmKhlNETx20SWhsH9r8NC4CmbBWO17sGc7kCeBErLja/gRvUjYEHYoz19zA2GRa7uhYLdxTQWEIUUtARvihAXjlo7ZHK/MiQkQhbhpPi4Pv9HCQ+2HeidKCaBndTr2g56TU+yFu1D4bg/JfLt6gRos2sgmb7K6iZGkcMw";
+//        parameters.vuforiaLicenseKey = VUFORIA_KEY;
+//        parameters.cameraName = hardwareMap.get(WebcamName.class, "Webcam1");
+//        VuforiaLocalizer vuforia = ClassFactory.getInstance().createVuforia(parameters);
+//        vuforia.enableConvertFrameToBitmap();
+//        AppUtil.getInstance().ensureDirectoryExists(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES));
 
 //        if (vuforiaWebcam) {
 //            robotWebcam = hardwareMap.get(WebcamName.class, "Webcam1");
@@ -570,7 +527,7 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
 
 //        imageCaptureOCV.initImageCaptureOCV(UltimateGoalVuforia, dashboard, fileLogger);
 
-        imageCaptureOCV.initImageCaptureOCV(vuforia, dashboard, fileLogger);
+//        imageCaptureOCV.initImageCaptureOCV(vuforia, dashboard, fileLogger);
 //        imageCaptureOCV.takeImage(new ImageCaptureOCV.OnImageCapture() {
 //            @Override
 //            public void OnImageCaptureVoid(Mat mat) {
@@ -614,17 +571,17 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
 
         //move the right block arm to a stashed position
         //start position for within 18 inches
- //       robotArms.rightWristServo.setPosition(1);
- //       robotArms.rightArmServo.setPosition(0.0);
- //       robotArms.rightClampServo.setPosition(0.15);
- //       robotArms.leftWristServo.setPosition(0.05);
- //       robotArms.leftArmServo.setPosition(0.0);
- //       robotArms.leftClampServo.setPosition(0.15);
+        //       robotArms.rightWristServo.setPosition(1);
+        //       robotArms.rightArmServo.setPosition(0.0);
+        //       robotArms.rightClampServo.setPosition(0.15);
+        //       robotArms.leftWristServo.setPosition(0.05);
+        //       robotArms.leftArmServo.setPosition(0.0);
+        //       robotArms.leftClampServo.setPosition(0.15);
         //robotArms.foundationServo.setPosition(1);
         robotArms.liftMotor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         robotArms.liftMotor1.setPower(0);
 
- //       Experiment to keep lift from falling during initial drive step
+        //       Experiment to keep lift from falling during initial drive step
         robotArms.liftMotor1.setTargetPosition(0);
         fileLogger.writeEvent("target position set");
         robotArms.setHardwareLiftPower(1.0);
@@ -806,10 +763,8 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
             case "DELAY":
                 DelayStep();
                 break;
-            case "FINDGOLDSS":
-                findGoldSS();
-                break;
             case "TANKTURN":
+//                TankTurnGyroHeading();
                 TankTurnStep();
                 break;
             case "TANKTURNGYRO":
@@ -824,7 +779,7 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
                 break;
             case "STRAFE":
                 MecanumStrafe();
-                //MecanumStrafeTime();
+//                MecanumStrafeTime();
                 break;
             case "RADIUSTURN":
                 RadiusTurnStep();
@@ -861,6 +816,9 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
                 break;
             case "STONEARM":
                 grabBlock();
+                break;
+            case "ROTATION":
+                setflyWheelPower();
                 break;
         }
     }
@@ -900,6 +858,7 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
                 break;
             case "TANKTURN":
                 mintCurrentStateTankTurn            = Constants.stepState.STATE_INIT;
+//                mintCurrentStateTankTurnGyroHeading = Constants.stepState.STATE_INIT;
                 towr5291TextToSpeech.Speak("Running Tank Turn", debug);
                 break;
             case "TANKTURNGYROENCODER":
@@ -968,9 +927,8 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
                 getMintCurrentStateEjector           = Constants.stepState.STATE_INIT;
                 towr5291TextToSpeech.Speak("Ejector", debug);
                 break;
-            case "FLYWHEEL":
-                mintCurrentStateFlywheel            = Constants.stepState.STATE_INIT;
-                towr5291TextToSpeech.Speak("Flywheel", debug);
+            case "ROTATION":
+                mintCurrentStateFlywheelPower        = Constants.stepState.STATE_INIT;
                 break;
             case "STONEARM":
                 mintCurrentStateGrabBlock          = Constants.stepState.STATE_INIT;
@@ -1170,7 +1128,7 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
 
                 //stop driving when within .5 inch, sometimes takes a long time to get that last bit and times out.
                 //stop when drive motors stop
-                if (Math.abs(dblDistanceToEnd) <= 1) {
+                if (Math.abs(dblDistanceToEnd) <= mdblRobotParm6) {
                     fileLogger.writeEvent(3,"mblnRobotLastPos Complete Near END " + Math.abs(dblDistanceToEnd));
                     robotDrive.setHardwareDrivePower(0);
                     mintCurrentStateDriveHeading = Constants.stepState.STATE_COMPLETE;
@@ -1187,6 +1145,24 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
                 } else {
                     //robotDrive.setHardwareDrivePower(0);
                     fileLogger.writeEvent(2,"Complete         ");
+                    if(mdblRobotParm2 == 1) {
+                        robotDrive.baseMotor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                        robotDrive.baseMotor2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                        robotDrive.baseMotor3.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                        robotDrive.baseMotor4.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+                        robotDrive.baseMotor1.setTargetPosition(robotDrive.baseMotor1.getCurrentPosition());
+                        robotDrive.baseMotor2.setTargetPosition(robotDrive.baseMotor2.getCurrentPosition());
+                        robotDrive.baseMotor3.setTargetPosition(robotDrive.baseMotor3.getCurrentPosition());
+                        robotDrive.baseMotor4.setTargetPosition(robotDrive.baseMotor4.getCurrentPosition());
+
+                        robotDrive.baseMotor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                        robotDrive.baseMotor2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                        robotDrive.baseMotor3.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                        robotDrive.baseMotor4.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+                        robotDrive.setHardwareDrivePower(mdblStepSpeed);
+                    }
                     mblnDisableVisionProcessing = false;  //enable vision processing
                     mintCurrentStateDriveHeading = Constants.stepState.STATE_COMPLETE;
                     deleteParallelStep();
@@ -2009,6 +1985,176 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
         }
     }
 
+    private void MecanumStrafeTime() {
+        fileLogger.setEventTag("MecanumStrafeTime()");
+
+        double dblDistanceToEndLeft1;
+        double dblDistanceToEndLeft2;
+        double dblDistanceToEndRight1;
+        double dblDistanceToEndRight2;
+        double dblDistanceFromStartLeft1;
+        double dblDistanceFromStartLeft2;
+        double dblDistanceFromStartRight1;
+        double dblDistanceFromStartRight2;
+
+        int intLeft1MotorEncoderPosition;
+        int intLeft2MotorEncoderPosition;
+        int intRight1MotorEncoderPosition;
+        int intRight2MotorEncoderPosition;
+        double rdblSpeed;
+
+        switch (mintCurrentStateMecanumStrafe) {
+            case STATE_INIT: {
+//                double adafruitIMUHeading;
+//                double currentHeading;
+//                PIDLEFT1 = new TOWR5291PID(runtime,0,0,3,3,0);
+//                PIDLEFT2 = new TOWR5291PID(runtime,0,0,3,3,0);
+//                PIDRIGHT1 = new TOWR5291PID(runtime,0,0,3,3,0);
+//                PIDRIGHT2 = new TOWR5291PID(runtime,0,0,3,3,0);
+//
+//                mblnDisableVisionProcessing = true;  //disable vision processing
+//
+//                // Get Current Encoder positions
+//                if (mblnNextStepLastPos) {
+//                    mintStartPositionLeft1 = mintLastEncoderDestinationLeft1;
+//                    mintStartPositionLeft2 = mintLastEncoderDestinationLeft2;
+//                    mintStartPositionRight1 = mintLastEncoderDestinationRight1;
+//                    mintStartPositionRight2 = mintLastEncoderDestinationRight2;
+//                } else {
+//                    mintStartPositionLeft1 = robotDrive.baseMotor1.getCurrentPosition();
+//                    mintStartPositionLeft2 = robotDrive.baseMotor2.getCurrentPosition();
+//                    mintStartPositionRight1 = robotDrive.baseMotor3.getCurrentPosition();
+//                    mintStartPositionRight2 = robotDrive.baseMotor4.getCurrentPosition();
+//                }
+//                mblnNextStepLastPos = false;
+//
+//                mintStepLeftTarget1 = mintStartPositionLeft1 - (int) (mdblStepDistance * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE_LEFT_OFFSET() * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE() * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE_FRONT_OFFSET());
+//                mintStepLeftTarget2 = mintStartPositionLeft2 + (int) (mdblStepDistance * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE_LEFT_OFFSET() * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE() * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE_REAR_OFFSET());
+//                mintStepRightTarget1 = mintStartPositionRight1 + (int) (mdblStepDistance * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE_RIGHT_OFFSET() * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE() * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE_FRONT_OFFSET());
+//                mintStepRightTarget2 = mintStartPositionRight2 - (int) (mdblStepDistance * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE_RIGHT_OFFSET() * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE() * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE_REAR_OFFSET());
+//
+//                //store the encoder positions so next step can calculate destination
+//                mintLastEncoderDestinationLeft1 = mintStepLeftTarget1;
+//                mintLastEncoderDestinationLeft2 = mintStepLeftTarget2;
+//                mintLastEncoderDestinationRight1 = mintStepRightTarget1;
+//                mintLastEncoderDestinationRight2 = mintStepRightTarget2;
+
+                // set motor controller to mode
+                robotDrive.setHardwareDriveRunWithoutEncoders();
+                if (mdblStepSpeed > 0) {
+                    intdirection = 1;
+                } else {
+                    intdirection = -1;
+                }
+
+                // set power on motor controller to start moving
+                //robotDrive.setHardwareDrivePower(rdblSpeed);  //set motor power
+                robotDrive.baseMotor1.setPower(Math.abs(mdblStepSpeed) * intdirection);
+                robotDrive.baseMotor2.setPower(-Math.abs(mdblStepSpeed) * intdirection);
+                robotDrive.baseMotor3.setPower(-Math.abs(mdblStepSpeed) * intdirection);
+                robotDrive.baseMotor4.setPower(Math.abs(mdblStepSpeed) * intdirection);
+
+                mintCurrentStateMecanumStrafe = Constants.stepState.STATE_RUNNING;
+            }
+            break;
+            case STATE_RUNNING: {
+//                intLeft1MotorEncoderPosition = robotDrive.baseMotor1.getCurrentPosition();
+//                intLeft2MotorEncoderPosition = robotDrive.baseMotor2.getCurrentPosition();
+//                intRight1MotorEncoderPosition = robotDrive.baseMotor3.getCurrentPosition();
+//                intRight2MotorEncoderPosition = robotDrive.baseMotor4.getCurrentPosition();
+//
+//                double correctionleft1 = PIDLEFT1.PIDCorrection(runtime,mintStepLeftTarget1, intLeft1MotorEncoderPosition);
+//                double correctionleft2 = PIDLEFT2.PIDCorrection(runtime,mintStepLeftTarget2, intLeft2MotorEncoderPosition);
+//                double correctionright1 = PIDRIGHT1.PIDCorrection(runtime,mintStepRightTarget1, intRight1MotorEncoderPosition);
+//                double correctionright2 = PIDRIGHT2.PIDCorrection(runtime,mintStepRightTarget2, intRight2MotorEncoderPosition);
+//
+//                robotDrive.baseMotor1.setPower(mdblStepSpeed * correctionleft1 * intdirection);
+//                robotDrive.baseMotor2.setPower(mdblStepSpeed * correctionleft2 * intdirection);
+//                robotDrive.baseMotor3.setPower(mdblStepSpeed * correctionright1 * intdirection);
+//                robotDrive.baseMotor4.setPower(mdblStepSpeed * correctionright2 * intdirection);
+
+                //robotDrive.baseMotor1.setPower(mdblStepSpeed * intdirection);
+                //robotDrive.baseMotor2.setPower(mdblStepSpeed * intdirection);
+                //robotDrive.baseMotor3.setPower(mdblStepSpeed * intdirection);
+                //robotDrive.baseMotor4.setPower(mdblStepSpeed * intdirection);
+
+                //determine how close to target we are
+//                dblDistanceToEndLeft1 = (mintStepLeftTarget1 - intLeft1MotorEncoderPosition) / ourRobotConfig.getCOUNTS_PER_INCH();
+//                dblDistanceToEndLeft2 = (mintStepLeftTarget2 - intLeft2MotorEncoderPosition) / ourRobotConfig.getCOUNTS_PER_INCH();
+//                dblDistanceToEndRight1 = (mintStepRightTarget1 - intRight1MotorEncoderPosition) / ourRobotConfig.getCOUNTS_PER_INCH();
+//                dblDistanceToEndRight2 = (mintStepRightTarget2 - intRight2MotorEncoderPosition) / ourRobotConfig.getCOUNTS_PER_INCH();
+//
+//                dblDistanceFromStartLeft1 = (mintStartPositionLeft1 + intLeft1MotorEncoderPosition) / ourRobotConfig.getCOUNTS_PER_INCH();
+//                dblDistanceFromStartLeft2 = (mintStartPositionLeft1 + intLeft2MotorEncoderPosition) / ourRobotConfig.getCOUNTS_PER_INCH();
+//                dblDistanceFromStartRight1 = (mintStartPositionRight1 + intRight1MotorEncoderPosition) / ourRobotConfig.getCOUNTS_PER_INCH();
+//                dblDistanceFromStartRight2 = (mintStartPositionRight2 + intRight2MotorEncoderPosition) / ourRobotConfig.getCOUNTS_PER_INCH();
+//
+//                fileLogger.writeEvent(3, "Timer- " + mStateTime.milliseconds() + " Left1Distance:- " + dblDistanceFromStartLeft1);
+//                fileLogger.writeEvent(3, "Timer- " + mStateTime.milliseconds() + " Left2Distance:- " + dblDistanceFromStartLeft2);
+//                fileLogger.writeEvent(3, "Timer- " + mStateTime.milliseconds() + " Right1Distance:- " + dblDistanceFromStartRight1);
+//                fileLogger.writeEvent(3, "Timer- " + mStateTime.milliseconds() + " Right2Distance:- " + dblDistanceFromStartRight2);
+//
+//                fileLogger.writeEvent(3, "Current LPosition1:- " + intLeft1MotorEncoderPosition + " LTarget1:- " + mintStepLeftTarget1);
+//                fileLogger.writeEvent(3, "Current LPosition2:- " + intLeft2MotorEncoderPosition + " LTarget2:- " + mintStepLeftTarget2);
+//                fileLogger.writeEvent(3, "Current RPosition1:- " + intRight1MotorEncoderPosition + " RTarget1:- " + mintStepRightTarget1);
+//                fileLogger.writeEvent(3, "Current RPosition2:- " + intRight2MotorEncoderPosition + " RTarget2:- " + mintStepRightTarget2);
+//
+//                dashboard.displayPrintf(4,  "Mecanum Strafe Positions moving " + mdblStepDistance);
+//                dashboard.displayPrintf(5, LABEL_WIDTH, "Left  Target: ", "Running to %7d :%7d", mintStepLeftTarget1, mintStepLeftTarget2);
+//                dashboard.displayPrintf(6, LABEL_WIDTH, "Left  Actual: ", "Running at %7d :%7d", intLeft1MotorEncoderPosition, intLeft2MotorEncoderPosition);
+//                dashboard.displayPrintf(7, LABEL_WIDTH, "Right Target: ", "Running to %7d :%7d", mintStepRightTarget1, mintStepRightTarget2);
+//                dashboard.displayPrintf(8, LABEL_WIDTH, "Right Actual: ", "Running at %7d :%7d", intRight1MotorEncoderPosition, intRight2MotorEncoderPosition);
+//
+//                double dblDistanceToEnd = Math.max(Math.max(Math.max(Math.abs(dblDistanceToEndLeft1),Math.abs(dblDistanceToEndRight1)),Math.abs(dblDistanceToEndLeft2)),Math.abs(dblDistanceToEndRight2));
+
+                if (mdblRobotParm1 > 0) {
+                    if (mStateTime.milliseconds() > mdblRobotParm1) {
+//                        fileLogger.writeEvent(3, "Complete Early ......." + dblDistanceToEnd);
+                        fileLogger.writeEvent(3, "mblnRobotLastPos Complete Near END ");
+                        mintCurrentStateMecanumStrafe = Constants.stepState.STATE_COMPLETE;
+                        robotDrive.setHardwareDrivePower(0);
+                        robotDrive.setHardwareDriveRunUsingEncoders();
+                        deleteParallelStep();
+                        break;
+                    }
+                }
+
+//                if (mblnRobotLastPos) {
+//                    if (Math.abs(dblDistanceToEnd) <= mdblRobotParm6) {
+////                        fileLogger.writeEvent(3,"Complete NextStepLasp......." + dblDistanceToEnd);
+//                        mblnNextStepLastPos = true;
+//                        mblnDisableVisionProcessing = false;  //enable vision processing
+//                        mintCurrentStateMecanumStrafe = Constants.stepState.STATE_COMPLETE;
+//                        robotDrive.setHardwareDrivePower(0);
+//                        robotDrive.setHardwareDriveRunUsingEncoders();
+//                        deleteParallelStep();
+//                        break;
+//                    }
+//                } else if (Math.abs(dblDistanceToEnd) <= mdblRobotParm6) {
+//                    fileLogger.writeEvent(3,"Complete Early ......." + dblDistanceToEnd);
+//                    fileLogger.writeEvent(3,"mblnRobotLastPos Complete Near END ");
+//                    mintCurrentStateMecanumStrafe = Constants.stepState.STATE_COMPLETE;
+//                    robotDrive.setHardwareDrivePower(0);
+//                    robotDrive.setHardwareDriveRunUsingEncoders();
+//                    deleteParallelStep();
+//                    break;
+//                }
+
+            } //end Case Running
+            //check timeout value
+            if (mStateTime.seconds() > mdblStepTimeout) {
+                fileLogger.writeEvent(1, "Timeout:- " + mStateTime.seconds());
+                //  Transition to a new state.
+                robotDrive.setHardwareDrivePower(0);
+                robotDrive.setHardwareDriveRunUsingEncoders();
+                mintCurrentStateMecanumStrafe = Constants.stepState.STATE_COMPLETE;
+                deleteParallelStep();
+                break;
+            }
+            break;
+        }
+    }
+
     double mdblWyattsGyroDriveStartAngle = 0;
 
     private void WyattsGyroDrive(){
@@ -2091,6 +2237,76 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
         }
     }
 
+    private void TankTurnGyroHeading() {
+        fileLogger.setEventTag("TankTurnGyroHeading()");
+        switch (mintCurrentStateTankTurnGyroHeading) {
+            case STATE_INIT: {
+                double adafruitIMUHeading;
+                adafruitIMUHeading = getAdafruitHeading();
+                mdblTankTurnGyroRequiredHeading = mdblStepDistance + adafruitIMUHeading;
+
+                robotDrive.setHardwareDriveRunWithoutEncoders();
+                mintCurrentStateTankTurnGyroHeading = Constants.stepState.STATE_RUNNING;
+            }
+            break;
+            case STATE_RUNNING: {
+                double adafruitIMUHeading = getAdafruitHeading();
+
+                if(adafruitIMUHeading > 180) {
+                    adafruitIMUHeading -= 360;
+                } else if (adafruitIMUHeading < 0) {
+                    adafruitIMUHeading += 360;
+                }
+
+                dashboard.displayPrintf(9, "Gyro Read" + adafruitIMUHeading);
+                dashboard.displayPrintf(11, "Difference " + TOWR5291Utils.differenceBetweenAngles(mdblWyattsGyroDriveStartAngle, adafruitIMUHeading));
+                dashboard.refreshDisplay();
+
+                double dblError = 10;
+
+                if(TOWR5291Utils.differenceBetweenAngles(mdblWyattsGyroDriveStartAngle, adafruitIMUHeading) > 0) {
+                    robotDrive.setHardwareDriveLeftMotorPower(-mdblStepSpeed);
+                    robotDrive.setHardwareDriveRightMotorPower(mdblStepSpeed);
+                } else {
+                    robotDrive.setHardwareDriveLeftMotorPower(mdblStepSpeed);
+                    robotDrive.setHardwareDriveRightMotorPower(-mdblStepSpeed);
+                }
+
+                /*
+                if (Math.abs(mdblTankTurnGyroRequiredHeading - adafruitIMUHeading) > dblError) {  //Continue while the robot direction is further than param1 degrees from the target
+                    double correction = 1;
+
+                    if (mdblTankTurnGyroRequiredHeading - adafruitIMUHeading < 0)
+                        correction = -correction;
+
+                    robotDrive.setHardwareDriveLeftMotorPower( -mdblStepSpeed * correction);
+                    robotDrive.setHardwareDriveRightMotorPower( mdblStepSpeed * correction);
+
+                    dashboard.displayPrintf(10, "Left Drive " + -correction);
+                } else {
+                    robotDrive.setHardwareDriveLeftMotorPower(0);
+                    robotDrive.setHardwareDriveRightMotorPower(0);
+                    robotDrive.setHardwareDriveRunUsingEncoders();
+                    fileLogger.writeEvent(1, "TankTurnGyro()", "Complete Near Enough:- " + Math.abs(mdblTankTurnGyroRequiredHeading - adafruitIMUHeading) + " Range:- " + mdblRobotParm6);
+                    //  Transition to a new state.
+                    mintCurrentStateTankTurnGyroHeading = Constants.stepState.STATE_COMPLETE;
+                    deleteParallelStep();
+                    break;
+                }
+                 */
+            } //end Case Running
+            //check timeout value
+            if (mStateTime.seconds() > mdblStepTimeout) {
+                fileLogger.writeEvent(1, "TankTurnGyro()", "Timeout:- " + mStateTime.seconds());
+                //  Transition to a new state.
+                mintCurrentStateTankTurnGyroHeading = Constants.stepState.STATE_COMPLETE;
+                deleteParallelStep();
+            }
+            break;
+        }
+    }
+
+    /*
     private void TankTurnGyroHeading() {
         fileLogger.setEventTag("TankTurnGyroHeading()");
         switch (mintCurrentStateTankTurnGyroHeading) {
@@ -2218,7 +2434,7 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
             break;
         }
     }
-
+    */
     private void TankTurnGyroHeadingEncoder()
     {
         fileLogger.setEventTag("TankTurnGyroHeadingEncoder()");
@@ -2349,17 +2565,17 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
                     deleteParallelStep();
                     break;
                 }
-        }
-                //check timeout value
-                if (mStateTime.seconds() > mdblStepTimeout) {
-                    robotArms.setHardwareLiftPower(0);
-                    fileLogger.writeEvent(1,"Timeout:- " + mStateTime.seconds());
-                    //  Transition to a new state.
-                    mintCurrentStateMoveLift = Constants.stepState.STATE_COMPLETE;
-                    deleteParallelStep();
-                    break;
-                }
+            }
+            //check timeout value
+            if (mStateTime.seconds() > mdblStepTimeout) {
+                robotArms.setHardwareLiftPower(0);
+                fileLogger.writeEvent(1,"Timeout:- " + mStateTime.seconds());
+                //  Transition to a new state.
+                mintCurrentStateMoveLift = Constants.stepState.STATE_COMPLETE;
+                deleteParallelStep();
                 break;
+            }
+            break;
         }
     }
     private void SetIntake(){
@@ -2604,16 +2820,16 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
                 }
             }//check timeout value
 
-                if (mStateTime.seconds() > mdblStepTimeout) {
-                    robotArms.flywheelMotor.setPower(0);
-                    fileLogger.writeEvent(1,"Timeout:- " + mStateTime.seconds());
-                    //  Transition to a new state.
-                    mintCurrentStateFlywheel = Constants.stepState.STATE_COMPLETE;
-                    deleteParallelStep();
-                    break;
-                }
+            if (mStateTime.seconds() > mdblStepTimeout) {
+                robotArms.flywheelMotor.setPower(0);
+                fileLogger.writeEvent(1,"Timeout:- " + mStateTime.seconds());
+                //  Transition to a new state.
+                mintCurrentStateFlywheel = Constants.stepState.STATE_COMPLETE;
                 deleteParallelStep();
                 break;
+            }
+            deleteParallelStep();
+            break;
         }
     }
 
@@ -2744,735 +2960,6 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
                     fileLogger.writeEvent(1,"Timeout:- " + mStateTime.seconds());
                     //  Transition to a new state.
                     mintCurrentStateNextStone = Constants.stepState.STATE_COMPLETE;
-                    deleteParallelStep();
-                }
-                break;
-        }
-    }
-
-    private void findGoldSS() {
-        fileLogger.setEventTag("findGold()");
-        switch (mintCurrentStepFindGoldSS){
-            case STATE_INIT:
-                if (mStateTime.milliseconds() > mdblRobotParm1) {
-                    fileLogger.writeEvent(3, "Initialised");
- //                   mboolFoundSkyStone = false;
-                    mColour = Constants.ObjectColours.OBJECT_NONE;
-                    numberOfRings = Constants.ObjectColours.OBJECT_NONE;
- //                   mLocation = Constants.ObjectColours.OBJECT_NONE;
-                    imageCaptureOCV.takeImage(new ImageCaptureOCV.OnImageCapture() {
-                        @Override
-                        public void OnImageCaptureVoid(Mat mat) {
-                            //find Skystone Position
-                            if (numberOfRings == Constants.ObjectColours.OBJECT_NONE)  //was quad 3
-                                if (elementColour.UltimateGoalOCV(fileLogger, dashboard, mat, 0, false, 9, false) == Constants.ObjectColours.OBJECT_RED_FOUR_RING) {
-       //                             mColour = Constants.ObjectColours.OBJECT_RED;
-         //                           mLocation = Constants.ObjectColours.OBJECT_RED_CENTER;
-                                    numberOfRings = Constants.ObjectColours.OBJECT_RED_FOUR_RING;
-                                }
-                                else if (elementColour.UltimateGoalOCV(fileLogger, dashboard, mat, 0, false, 9, false) == Constants.ObjectColours.OBJECT_RED_ONE_RING) {
-                                numberOfRings = Constants.ObjectColours.OBJECT_RED_ONE_RING;
-                            }
-                     //       if (mColour == Constants.ObjectColours.OBJECT_NONE) { //was quad 4
-                      //          if (elementColour.UltimateGoalOCV(fileLogger, dashboard, mat, 0, false, 8, false) == Constants.ObjectColours.OBJECT_RED) {
-                      //              mColour = Constants.ObjectColours.OBJECT_RED;
-                     //               mLocation = Constants.ObjectColours.OBJECT_RED_LEFT;
-                      //          }
-                      //     }
-                        }
-                    });
-                    mintNumberColourTries = 0;
-                    mintCurrentStepFindGoldSS = Constants.stepState.STATE_RUNNING;
-                }
-                break;
-            case STATE_RUNNING:
-                fileLogger.writeEvent(3, "Running");
-
-                //check to see
-                // if we found
-                if ((numberOfRings == Constants.ObjectColours.OBJECT_RED_FOUR_RING) || (numberOfRings == Constants.ObjectColours.OBJECT_RED_ONE_RING) || (numberOfRings == Constants.ObjectColours.OBJECT_NONE)) {
-                    fileLogger.writeEvent(1,"Image Processed:- " + numberOfRings.toString());
-
-                    switch (numberOfRings){
-                        case OBJECT_RED_FOUR_RING:
-                            switch (ourRobotConfig.getAllianceStartPosition()) {
-                                case "Left":
-                                    if (ourRobotConfig.getAllianceColor().equals("Blue")) {
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 80, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 25, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -80, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 6, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 23, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", -60, -1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0.7, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -22, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 28, 0.5, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 14, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 60, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "CLAW", 0, 0.7, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "LIFT", -35, -0.5, false, false, 0, 0, 0, 0, 0, 5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "STRAFE", 16, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -36, 0.5, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DELAY", 0, 0, false, false, 1500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 5000, -1600, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "TANKTURNGYRO", 0, 0.5, false, false, 1, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -13, 0.5, false, false, 0, 0, 0, 0, 0, 0.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -46, 0.5, false, false, 1, 0, 0.3, 0, 0, 0.5, mintCurrentStep + 1);
-                                        fileLogger.writeEvent(3, "Blue 4 Ring Left");
-                                    } else {
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 80, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 25, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -80, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 6, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -23, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", -60, -1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0.7, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 22, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 28, 0.5, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -14, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 60, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "CLAW", 0, 0.7, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "LIFT", -35, -0.5, false, false, 0, 0, 0, 0, 0, 5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "STRAFE", -16, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -36, 0.5, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DELAY", 0, 0, false, false, 1500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 5000, -1600, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "TANKTURNGYRO", 0, 0.5, false, false, 1, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -13, 0.5, false, false, 0, 0, 0, 0, 0, 0.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -46, 0.5, false, false, 1, 0, 0.3, 0, 0, 0.5, mintCurrentStep + 1);
-                                        fileLogger.writeEvent(3, "Red 4 Ring Left");
-                                    }
-                                    break;
-                                case "Right":
-                                    if (ourRobotConfig.getAllianceColor().equals("Blue")) {
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 80, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 25, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -80, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 10, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", -60, -1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0.7, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -9, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        //corner align
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 23, 0.5, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 6, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 20, 0.75, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                       // autonomousStepsFile.insertSteps(6, "DRIVE", 28, 0.5, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 14, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 43, 0.75, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        //autonomousStepsFile.insertSteps(6, "DRIVE", 60, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "CLAW", 0, 0.6, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "LIFT", -35, -0.5, false, false, 0, 0, 0, 0, 0, 5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "STRAFE", 16, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -36, 0.5, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-
-                                        //Below is the experimental part 1
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 1500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 1500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "DELAY", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-
-                                        autonomousStepsFile.insertSteps(1, "TANKTURNGYRO", 0, 0.5, false, false, 1, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 8, 0.5, false, false, 0, 0, 0, 0, 0, 0.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 5000, -1600, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -46, 0.5, false, false, 0, 0, 0, 0, 0, 0.5, mintCurrentStep + 1);
-
-
-
-                                        /*
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 1500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 5000, -1600, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "TANKTURNGYRO", 0, 0.5, false, false, 1, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 9, 0.5, false, false, 0, 0, 0, 0, 0, 0.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -46, 0.5, false, false, 1, 0, 0.3, 0, 0, 0.5, mintCurrentStep + 1);
-
-                                        */
-                                        fileLogger.writeEvent(3, "Blue 4 Ring Right");
-
-                                    }
-                                    else {
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 80, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 25, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -80, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -10, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", -60, -1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0.7, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 9, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 28, 0.5, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -14, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 60, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "CLAW", 0, 0.7, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "LIFT", -35, -0.5, false, false, 0, 0, 0, 0, 0, 5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "STRAFE", -16, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -36, 0.5, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 1500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 5000, -1600, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "TANKTURNGYRO", 0, 0.5, false, false, 1, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 9, 0.5, false, false, 0, 0, 0, 0, 0, 0.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -46, 0.5, false, false, 1, 0, 0.3, 0, 0, 0.5, mintCurrentStep + 1);
-                                        fileLogger.writeEvent(3, "Red 4 Ring Right");
-                                    }
-                                        break;
-                            }
-                            break;
-                        case OBJECT_RED_ONE_RING:
-                            switch (ourRobotConfig.getAllianceStartPosition()) {
-                                case "Left":
-                                    if (ourRobotConfig.getAllianceColor().equals("Blue")) {
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 80, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 8, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -19, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -62, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 6, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 23, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", -60, -1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0.7, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -22, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 47, 0.5, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 20, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        //was 0.5 drive
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 25, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "CLAW", 0, 0.7, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "LIFT", -55, -0.5, false, false, 0, 0, 0, 0, 0, 5, mintCurrentStep + 1);
-                                        //was 0.5 drive
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -18, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DELAY", 0, 0, false, false, 1500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 5000, -1600, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "TANKTURNGYRO", 0, 0.5, false, false, 1, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        //was 0.5 drive, chg to 1.0, then back to 0.5
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -13, 0.5, false, false, 0, 0, 0, 0, 0, 0.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -46, 0.5, false, false, 1, 0, 0.3, 0, 0, 0.5, mintCurrentStep + 1);
-                                        fileLogger.writeEvent(3, "Blue Left One Ring");
-                                    } else {
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 80, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 8, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 19, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -62, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 6, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -23, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", -60, -1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0.7, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 22, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 47, 0.5, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -20, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        //was 0.5 drive
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 25, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "CLAW", 0, 0.7, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "LIFT", -55, -0.5, false, false, 0, 0, 0, 0, 0, 5, mintCurrentStep + 1);
-                                        //was 0.5 drive
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -18, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DELAY", 0, 0, false, false, 1500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 5000, -1600, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "TANKTURNGYRO", 0, 0.5, false, false, 1, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        //was 0.5 drive, chg to 1.0, then back to 0.5
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -13, 0.5, false, false, 0, 0, 0, 0, 0, 0.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -46, 0.5, false, false, 1, 0, 0.3, 0, 0, 0.5, mintCurrentStep + 1);
-                                        fileLogger.writeEvent(3, "Red Left One Ring");
-                                    }
-                                    break;
-                                case "Right":
-                                    if (ourRobotConfig.getAllianceColor().equals("Blue")) {
-                                        autonomousStepsFile.insertSteps(6, "LIFT", 80, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 8, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        //maybe then drive rest of way
-                                        //maybe shoot
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -19, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        //maybe drive less
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -62, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 10, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", -60, -1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0.7, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -9, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        //Added 2 lines below to line up in corner
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 23, 0.5, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 6, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-
-                                        //0.5   was 44 distance, reduced to add alignment to corner
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 22, 0.75, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-
-                                        //maybe turn off intake here
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 21, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        //0.5
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 26, 0.75, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-
-                                        //maybe turn on intake here
-                                        autonomousStepsFile.insertSteps(1, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "CLAW", 0, 0.6, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "LIFT", -55, -0.5, false, false, 0, 0, 0, 0, 0, 5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -21, 0.5, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-
-                                        //Below is the experimental part 1
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 1500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 1500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "DELAY", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-
-                                        autonomousStepsFile.insertSteps(1, "TANKTURNGYRO", 0, 0.5, false, false, 1, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 8, 0.5, false, false, 0, 0, 0, 0, 0, 0.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 5000, -1600, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -46, 0.5, false, false, 0, 0, 0, 0, 0, 0.5, mintCurrentStep + 1);
-
-
-
-                                        //Below is the real part one
-                                        /*autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 1500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "DELAY", 0, 0, false, false, 3000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 5000, -1625, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "TANKTURNGYRO", 0, 0.5, false, false, 1, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 9, 0.5, false, false, 0, 0, 0, 0, 0, 0.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -45, 0.5, false, false, 1, 0, 0.3, 0, 0, 0.5, mintCurrentStep + 1);
-                                        */
-                                        fileLogger.writeEvent(3, "Blue Right One Ring");
-                                    }
-                                    else {
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 80, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 8, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 19, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -62, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -10, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", -60, -1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0.7, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 9, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 47, 0.5, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -20, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 28, 0.5, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "CLAW", 0, 0.7, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "LIFT", -55, -0.5, false, false, 0, 0, 0, 0, 0, 5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -21, 0.5, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 1500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 5000, -1600, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "TANKTURNGYRO", 0, 0.5, false, false, 1, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 9, 0.5, false, false, 0, 0, 0, 0, 0, 0.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -46, 0.5, false, false, 1, 0, 0.3, 0, 0, 0.5, mintCurrentStep + 1);
-                                        fileLogger.writeEvent(3, "Red Right One Ring");
-                                    }
-                                    break;
-                            }
-                            break;
-                        default:  //right side, unfortunately we don't sample the right side so if its not left or center we assume right
-                            switch (ourRobotConfig.getAllianceStartPosition()) {
-                                case "Left":
-                                    if (ourRobotConfig.getAllianceColor().equals("Blue")) {
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -20, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -12, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 80, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 10, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -41, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 6, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 23, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", -60, -1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0.7, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -22, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 46, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "CLAW", 0, 0.7, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "LIFT", -55, -0.5, false, false, 0, 0, 0, 0, 0, 5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "STRAFE", 20, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DELAY", 0, 0, false, false, 1500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 5000, -1600, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "TANKTURNGYRO", 0, 0.5, false, false, 1, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -13, 0.5, false, false, 0, 0, 0, 0, 0, 0.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -46, 0.5, false, false, 1, 0, 0.3, 0, 0, 0.5, mintCurrentStep + 1);
-                                        fileLogger.writeEvent(3, "Default Blue Left");
-                                    }
-                                    else {
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -20, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 12, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 80, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 10, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -41, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 6, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -23, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", -60, -1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0.7, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 22, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 46, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "CLAW", 0, 0.7, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "LIFT", -55, -0.5, false, false, 0, 0, 0, 0, 0, 5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "STRAFE", -20, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DELAY", 0, 0, false, false, 1500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 5000, -1600, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "TANKTURNGYRO", 0, 0.5, false, false, 1, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -13, 0.5, false, false, 0, 0, 0, 0, 0, 0.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -46, 0.5, false, false, 1, 0, 0.3, 0, 0, 0.5, mintCurrentStep + 1);
-                                        fileLogger.writeEvent(3, "Default Red Left");
-                                    }
-                                    break;
-                                case "Right":
-                                    if (ourRobotConfig.getAllianceColor().equals("Blue")) {
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -20, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -12, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 80, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 10, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -39, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 10, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", -60, -1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0.7, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -9, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        //Adjust drive back to corner from 20 to 23
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 26, 0.5, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 6, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 24, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "CLAW", 0, 0.6, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "LIFT", -55, -0.5, false, false, 0, 0, 0, 0, 0, 5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "STRAFE", 20, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-
-                                        //Below is the experimental part 1
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 1500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 1500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "DELAY", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-
-                                        autonomousStepsFile.insertSteps(1, "TANKTURNGYRO", 0, 0.5, false, false, 1, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 8, 0.5, false, false, 0, 0, 0, 0, 0, 0.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 5000, -1600, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -46, 0.5, false, false, 0, 0, 0, 0, 0, 0.5, mintCurrentStep + 1);
-
-
-                                        /*
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "DELAY", 0, 0, false, false, 3000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 5000, -1625, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "TANKTURNGYRO", 0, 0.5, false, false, 1, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 9, 0.5, false, false, 0, 0, 0, 0, 0, 0.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -45, 0.5, false, false, 0, 0, 0, 0, 0, 0.5, mintCurrentStep + 1);
-                                        */
-                                        fileLogger.writeEvent(3, "Default Blue Right");
-                                    }
-                                    else  {
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -20, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 12, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 80, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 10, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -39, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", -10, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 750, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", -60, -1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 0.7, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 9, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", 46, 1.0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "CLAW", 0, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "LIFT", 40, 1, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "CLAW", 0, 0.7, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "LIFT", -55, -0.5, false, false, 0, 0, 0, 0, 0, 5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(3, "STRAFE", -20, 0.5, false, false, 0, 0, 0, 0, 0, 1.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 1000, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "EJECTOR", 0, 0.3, false, false, 0, 0, 0, 0, 0, 0, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(2, "DELAY", 0, 0, false, false, 1500, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "FLYWHEEL", 0, 0, false, false, 5000, -1600, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(1, "TANKTURNGYRO", 0, 0.5, false, false, 1, 0, 0, 0, 0, 1, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(4, "STRAFE", 9, 0.5, false, false, 0, 0, 0, 0, 0, 0.5, mintCurrentStep + 1);
-                                        autonomousStepsFile.insertSteps(6, "DRIVE", -46, 0.5, false, false, 1, 0, 0.3, 0, 0, 0.5, mintCurrentStep + 1);
-                                        fileLogger.writeEvent(3, "Default Red Right");
-                                        }
-                                    break;
-                            }
-                            break;
-                    }
-
-                    //  Transition to a new state.
-                    mintCurrentStepFindGoldSS = Constants.stepState.STATE_COMPLETE;
-                    deleteParallelStep();
-                }
-                //check timeout value
-                if (mStateTime.seconds() > mdblStepTimeout) {
-                    fileLogger.writeEvent(1,"Timeout:- " + mStateTime.seconds());
-                    //  Transition to a new state.
-                    mintCurrentStepFindGoldSS = Constants.stepState.STATE_COMPLETE;
                     deleteParallelStep();
                 }
                 break;
@@ -3647,8 +3134,8 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
             angle = angle + 0;
             if (angle > 360) {
                 angle = angle - 360;
-            //angle = angle +0;
-        }
+                //angle = angle +0;
+            }
             fileLogger.writeEvent(2,"In RED Angle " + angle);
 
         } else
@@ -3657,7 +3144,7 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
             //angle = angle - 135;
             if (angle < 0) {
                 angle = angle + 360;
-            //angle = angle +0;
+                //angle = angle +0;
             }
         }
         return angle;
@@ -3686,6 +3173,40 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
         //    }
         //    return intAngle1;
         //}
+    }
+
+    private void setflyWheelPower(){
+        switch(mintCurrentStateFlywheelPower){
+            case STATE_INIT:
+                robotArms.flywheelMotor.setPower(mdblStepSpeed);
+                mStateTime.reset();
+                mStateTime.startTime();
+                mintCurrentStateFlywheelPower= Constants.stepState.STATE_RUNNING;
+                break;
+            case STATE_RUNNING:
+                //Time
+                if (mdblRobotParm1 > 0) {
+                    if (mStateTime.milliseconds() > mdblRobotParm1) {
+                        fileLogger.writeEvent(3, "SetFlywheelPower Complete Near END ");
+                        mintCurrentStateFlywheelPower = Constants.stepState.STATE_COMPLETE;
+                        robotArms.flywheelMotor.setPower(0);
+                        deleteParallelStep();
+                        break;
+                    }
+                }
+
+                //check timeout value
+                if (mStateTime.seconds() > mdblStepTimeout) {// Stop all motion;
+                    robotDrive.setHardwareDrivePower(0);
+                    robotArms.flywheelMotor.setPower(0);
+                    fileLogger.writeEvent(1,"Timeout:- " + mStateTime.seconds());
+                    //  Transition to a new state.
+                    mintCurrentStateDriveHeading = Constants.stepState.STATE_COMPLETE;
+                    deleteParallelStep();
+                    break;
+                }
+                break;
+        }
     }
 
     private String newAngleDirectionGyro (int currentDirection, int newDirection)
@@ -3860,6 +3381,7 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
                 (mintCurrentStateClawMovement           == Constants.stepState.STATE_COMPLETE) &&
                 (mintCurrentStateTapeMeasure            == Constants.stepState.STATE_COMPLETE) &&
                 (mintCurrentStepFindGoldSS              == Constants.stepState.STATE_COMPLETE) &&
+                (mintCurrentStateFlywheelPower          == Constants.stepState.STATE_COMPLETE) &&
                 (mintCurrentStateGrabBlock              == Constants.stepState.STATE_COMPLETE)) {
             return true;
         }
@@ -3888,5 +3410,6 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
         mintCurrentStateTapeMeasure         = Constants.stepState.STATE_COMPLETE;
         mintCurrentStepFindGoldSS           = Constants.stepState.STATE_COMPLETE;
         mintCurrentStateGrabBlock           = Constants.stepState.STATE_COMPLETE;
+        mintCurrentStateFlywheelPower       = Constants.stepState.STATE_COMPLETE;
     }
 }
