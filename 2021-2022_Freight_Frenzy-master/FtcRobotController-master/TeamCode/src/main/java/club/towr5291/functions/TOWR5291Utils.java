@@ -258,4 +258,14 @@ public class TOWR5291Utils {
         double sign = (angle1 - angle2 >= 0 && angle1 - angle2 <= 180) || (angle1 - angle2 <= -180 && angle1 - angle2 >= 360) ? 1 : -1;
         return r * sign;
     }
+
+    public static double applyAngleWrap(double angle, double maxPositive) {
+        if(angle > maxPositive) {
+            angle -= 360;
+        } else if (angle < -maxPositive) {
+            angle += 360;
+        }
+
+        return angle;
+    }
 }

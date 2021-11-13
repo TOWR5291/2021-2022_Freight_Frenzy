@@ -35,7 +35,6 @@ package club.towr5291.opmodes;
 //Android Imports
 
 import android.content.SharedPreferences;
-import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.widget.TextView;
@@ -50,13 +49,8 @@ import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
-import com.vuforia.Frame;
-import com.vuforia.HINT;
-import com.vuforia.PIXEL_FORMAT;
-import com.vuforia.Vuforia;
 
 import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
-import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -66,17 +60,9 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
-import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
-import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 import org.firstinspires.ftc.robotcore.internal.opmode.OpModeManagerImpl;
-import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.firstinspires.ftc.teamcode.R;
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
-import org.opencv.imgcodecs.Imgcodecs;
-import org.opencv.imgproc.Imgproc;
 
-import java.io.File;
 import java.util.HashMap;
 
 import club.towr5291.functions.Constants;
@@ -89,14 +75,11 @@ import club.towr5291.functions.UltimateGoalOCV;
 import club.towr5291.libraries.ImageCaptureOCV;
 import club.towr5291.libraries.LibraryMotorType;
 import club.towr5291.libraries.LibraryStateSegAutoRoverRuckus;
-import club.towr5291.libraries.LibraryVuforiaUltimateGoal;
 import club.towr5291.libraries.TOWRDashBoard;
 import club.towr5291.libraries.robotConfig;
 import club.towr5291.libraries.robotConfigSettings;
 import club.towr5291.robotconfig.HardwareArmMotorsFreightFrenzy;
-import club.towr5291.robotconfig.HardwareArmMotorsUltimateGoal;
 import club.towr5291.robotconfig.HardwareDriveMotors;
-import club.towr5291.robotconfig.HardwareSensorsSkyStone;
 
 //Qualcomm Imports
 //FTC Imports
@@ -181,13 +164,11 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
     private Constants.stepState mintCurrentStateMoveLift;                       // Current State of the Move lift
     private Constants.stepState mintCurrentStateInTake;                         // Current State of the Move lift
     private Constants.stepState mintCurrentStateNextStone;                       // Current State of Finding Gold
-    private Constants.stepState mintCurrentStateWyattsGyroDrive;                // Wyatt Gyro Function
     private Constants.stepState mintCurrentStateTapeMeasure;                    // Control Tape Measure
     private Constants.stepState mintCurrentStateFlywheel;                       // Control flywheel
     private Constants.stepState mintCurrentStateClawMovement;                           // Control Servo to open close claw
     private Constants.stepState getMintCurrentStateEjector;                     // Control ejector
     private Constants.stepState mintCurrentStateGrabBlock;                      // Control arm to grab block
-    private Constants.stepState mintCurrentStepFindGoldSS;                      // test
     private Constants.stepState mintCurrentStateFlywheelPower;
 
     private boolean mboolFoundSkyStone = false;
@@ -802,9 +783,6 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
             case "NEXTSTONE":
                 nextStone();
                 break;
-            case "WYATTGYRO":
-                WyattsGyroDrive();
-                break;
             case "CLAW":
                 clawMovement();
                 break;
@@ -843,10 +821,6 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
             case "DELAY":
                 mintCurrentStepDelay                = Constants.stepState.STATE_INIT;
                 towr5291TextToSpeech.Speak("Running Delay", debug);
-                break;
-            case "FINDGOLDSS":
-                mintCurrentStepFindGoldSS                = Constants.stepState.STATE_INIT;
-                towr5291TextToSpeech.Speak("Running Find Gold SS", debug);
                 break;
             case "TANKTURNGYRO":
                 mintCurrentStateTankTurnGyroHeading = Constants.stepState.STATE_INIT;
@@ -912,10 +886,6 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
             case "NEXTSTONE":
                 mintCurrentStateNextStone            = Constants.stepState.STATE_INIT;
                 towr5291TextToSpeech.Speak("Running Find Skystone", debug);
-                break;
-            case "WYATTGYRO":
-                mintCurrentStateWyattsGyroDrive     = Constants.stepState.STATE_INIT;
-                towr5291TextToSpeech.Speak("Running Wyatt's Gyro Drive", debug);
                 break;
             case "FNC":  //  Run a special Function with Parms
                 break;
@@ -1985,258 +1955,7 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
         }
     }
 
-    private void MecanumStrafeTime() {
-        fileLogger.setEventTag("MecanumStrafeTime()");
-
-        double dblDistanceToEndLeft1;
-        double dblDistanceToEndLeft2;
-        double dblDistanceToEndRight1;
-        double dblDistanceToEndRight2;
-        double dblDistanceFromStartLeft1;
-        double dblDistanceFromStartLeft2;
-        double dblDistanceFromStartRight1;
-        double dblDistanceFromStartRight2;
-
-        int intLeft1MotorEncoderPosition;
-        int intLeft2MotorEncoderPosition;
-        int intRight1MotorEncoderPosition;
-        int intRight2MotorEncoderPosition;
-        double rdblSpeed;
-
-        switch (mintCurrentStateMecanumStrafe) {
-            case STATE_INIT: {
-//                double adafruitIMUHeading;
-//                double currentHeading;
-//                PIDLEFT1 = new TOWR5291PID(runtime,0,0,3,3,0);
-//                PIDLEFT2 = new TOWR5291PID(runtime,0,0,3,3,0);
-//                PIDRIGHT1 = new TOWR5291PID(runtime,0,0,3,3,0);
-//                PIDRIGHT2 = new TOWR5291PID(runtime,0,0,3,3,0);
-//
-//                mblnDisableVisionProcessing = true;  //disable vision processing
-//
-//                // Get Current Encoder positions
-//                if (mblnNextStepLastPos) {
-//                    mintStartPositionLeft1 = mintLastEncoderDestinationLeft1;
-//                    mintStartPositionLeft2 = mintLastEncoderDestinationLeft2;
-//                    mintStartPositionRight1 = mintLastEncoderDestinationRight1;
-//                    mintStartPositionRight2 = mintLastEncoderDestinationRight2;
-//                } else {
-//                    mintStartPositionLeft1 = robotDrive.baseMotor1.getCurrentPosition();
-//                    mintStartPositionLeft2 = robotDrive.baseMotor2.getCurrentPosition();
-//                    mintStartPositionRight1 = robotDrive.baseMotor3.getCurrentPosition();
-//                    mintStartPositionRight2 = robotDrive.baseMotor4.getCurrentPosition();
-//                }
-//                mblnNextStepLastPos = false;
-//
-//                mintStepLeftTarget1 = mintStartPositionLeft1 - (int) (mdblStepDistance * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE_LEFT_OFFSET() * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE() * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE_FRONT_OFFSET());
-//                mintStepLeftTarget2 = mintStartPositionLeft2 + (int) (mdblStepDistance * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE_LEFT_OFFSET() * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE() * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE_REAR_OFFSET());
-//                mintStepRightTarget1 = mintStartPositionRight1 + (int) (mdblStepDistance * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE_RIGHT_OFFSET() * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE() * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE_FRONT_OFFSET());
-//                mintStepRightTarget2 = mintStartPositionRight2 - (int) (mdblStepDistance * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE_RIGHT_OFFSET() * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE() * ourRobotConfig.getCOUNTS_PER_INCH_STRAFE_REAR_OFFSET());
-//
-//                //store the encoder positions so next step can calculate destination
-//                mintLastEncoderDestinationLeft1 = mintStepLeftTarget1;
-//                mintLastEncoderDestinationLeft2 = mintStepLeftTarget2;
-//                mintLastEncoderDestinationRight1 = mintStepRightTarget1;
-//                mintLastEncoderDestinationRight2 = mintStepRightTarget2;
-
-                // set motor controller to mode
-                robotDrive.setHardwareDriveRunWithoutEncoders();
-                if (mdblStepSpeed > 0) {
-                    intdirection = 1;
-                } else {
-                    intdirection = -1;
-                }
-
-                // set power on motor controller to start moving
-                //robotDrive.setHardwareDrivePower(rdblSpeed);  //set motor power
-                robotDrive.baseMotor1.setPower(Math.abs(mdblStepSpeed) * intdirection);
-                robotDrive.baseMotor2.setPower(-Math.abs(mdblStepSpeed) * intdirection);
-                robotDrive.baseMotor3.setPower(-Math.abs(mdblStepSpeed) * intdirection);
-                robotDrive.baseMotor4.setPower(Math.abs(mdblStepSpeed) * intdirection);
-
-                mintCurrentStateMecanumStrafe = Constants.stepState.STATE_RUNNING;
-            }
-            break;
-            case STATE_RUNNING: {
-//                intLeft1MotorEncoderPosition = robotDrive.baseMotor1.getCurrentPosition();
-//                intLeft2MotorEncoderPosition = robotDrive.baseMotor2.getCurrentPosition();
-//                intRight1MotorEncoderPosition = robotDrive.baseMotor3.getCurrentPosition();
-//                intRight2MotorEncoderPosition = robotDrive.baseMotor4.getCurrentPosition();
-//
-//                double correctionleft1 = PIDLEFT1.PIDCorrection(runtime,mintStepLeftTarget1, intLeft1MotorEncoderPosition);
-//                double correctionleft2 = PIDLEFT2.PIDCorrection(runtime,mintStepLeftTarget2, intLeft2MotorEncoderPosition);
-//                double correctionright1 = PIDRIGHT1.PIDCorrection(runtime,mintStepRightTarget1, intRight1MotorEncoderPosition);
-//                double correctionright2 = PIDRIGHT2.PIDCorrection(runtime,mintStepRightTarget2, intRight2MotorEncoderPosition);
-//
-//                robotDrive.baseMotor1.setPower(mdblStepSpeed * correctionleft1 * intdirection);
-//                robotDrive.baseMotor2.setPower(mdblStepSpeed * correctionleft2 * intdirection);
-//                robotDrive.baseMotor3.setPower(mdblStepSpeed * correctionright1 * intdirection);
-//                robotDrive.baseMotor4.setPower(mdblStepSpeed * correctionright2 * intdirection);
-
-                //robotDrive.baseMotor1.setPower(mdblStepSpeed * intdirection);
-                //robotDrive.baseMotor2.setPower(mdblStepSpeed * intdirection);
-                //robotDrive.baseMotor3.setPower(mdblStepSpeed * intdirection);
-                //robotDrive.baseMotor4.setPower(mdblStepSpeed * intdirection);
-
-                //determine how close to target we are
-//                dblDistanceToEndLeft1 = (mintStepLeftTarget1 - intLeft1MotorEncoderPosition) / ourRobotConfig.getCOUNTS_PER_INCH();
-//                dblDistanceToEndLeft2 = (mintStepLeftTarget2 - intLeft2MotorEncoderPosition) / ourRobotConfig.getCOUNTS_PER_INCH();
-//                dblDistanceToEndRight1 = (mintStepRightTarget1 - intRight1MotorEncoderPosition) / ourRobotConfig.getCOUNTS_PER_INCH();
-//                dblDistanceToEndRight2 = (mintStepRightTarget2 - intRight2MotorEncoderPosition) / ourRobotConfig.getCOUNTS_PER_INCH();
-//
-//                dblDistanceFromStartLeft1 = (mintStartPositionLeft1 + intLeft1MotorEncoderPosition) / ourRobotConfig.getCOUNTS_PER_INCH();
-//                dblDistanceFromStartLeft2 = (mintStartPositionLeft1 + intLeft2MotorEncoderPosition) / ourRobotConfig.getCOUNTS_PER_INCH();
-//                dblDistanceFromStartRight1 = (mintStartPositionRight1 + intRight1MotorEncoderPosition) / ourRobotConfig.getCOUNTS_PER_INCH();
-//                dblDistanceFromStartRight2 = (mintStartPositionRight2 + intRight2MotorEncoderPosition) / ourRobotConfig.getCOUNTS_PER_INCH();
-//
-//                fileLogger.writeEvent(3, "Timer- " + mStateTime.milliseconds() + " Left1Distance:- " + dblDistanceFromStartLeft1);
-//                fileLogger.writeEvent(3, "Timer- " + mStateTime.milliseconds() + " Left2Distance:- " + dblDistanceFromStartLeft2);
-//                fileLogger.writeEvent(3, "Timer- " + mStateTime.milliseconds() + " Right1Distance:- " + dblDistanceFromStartRight1);
-//                fileLogger.writeEvent(3, "Timer- " + mStateTime.milliseconds() + " Right2Distance:- " + dblDistanceFromStartRight2);
-//
-//                fileLogger.writeEvent(3, "Current LPosition1:- " + intLeft1MotorEncoderPosition + " LTarget1:- " + mintStepLeftTarget1);
-//                fileLogger.writeEvent(3, "Current LPosition2:- " + intLeft2MotorEncoderPosition + " LTarget2:- " + mintStepLeftTarget2);
-//                fileLogger.writeEvent(3, "Current RPosition1:- " + intRight1MotorEncoderPosition + " RTarget1:- " + mintStepRightTarget1);
-//                fileLogger.writeEvent(3, "Current RPosition2:- " + intRight2MotorEncoderPosition + " RTarget2:- " + mintStepRightTarget2);
-//
-//                dashboard.displayPrintf(4,  "Mecanum Strafe Positions moving " + mdblStepDistance);
-//                dashboard.displayPrintf(5, LABEL_WIDTH, "Left  Target: ", "Running to %7d :%7d", mintStepLeftTarget1, mintStepLeftTarget2);
-//                dashboard.displayPrintf(6, LABEL_WIDTH, "Left  Actual: ", "Running at %7d :%7d", intLeft1MotorEncoderPosition, intLeft2MotorEncoderPosition);
-//                dashboard.displayPrintf(7, LABEL_WIDTH, "Right Target: ", "Running to %7d :%7d", mintStepRightTarget1, mintStepRightTarget2);
-//                dashboard.displayPrintf(8, LABEL_WIDTH, "Right Actual: ", "Running at %7d :%7d", intRight1MotorEncoderPosition, intRight2MotorEncoderPosition);
-//
-//                double dblDistanceToEnd = Math.max(Math.max(Math.max(Math.abs(dblDistanceToEndLeft1),Math.abs(dblDistanceToEndRight1)),Math.abs(dblDistanceToEndLeft2)),Math.abs(dblDistanceToEndRight2));
-
-                if (mdblRobotParm1 > 0) {
-                    if (mStateTime.milliseconds() > mdblRobotParm1) {
-//                        fileLogger.writeEvent(3, "Complete Early ......." + dblDistanceToEnd);
-                        fileLogger.writeEvent(3, "mblnRobotLastPos Complete Near END ");
-                        mintCurrentStateMecanumStrafe = Constants.stepState.STATE_COMPLETE;
-                        robotDrive.setHardwareDrivePower(0);
-                        robotDrive.setHardwareDriveRunUsingEncoders();
-                        deleteParallelStep();
-                        break;
-                    }
-                }
-
-//                if (mblnRobotLastPos) {
-//                    if (Math.abs(dblDistanceToEnd) <= mdblRobotParm6) {
-////                        fileLogger.writeEvent(3,"Complete NextStepLasp......." + dblDistanceToEnd);
-//                        mblnNextStepLastPos = true;
-//                        mblnDisableVisionProcessing = false;  //enable vision processing
-//                        mintCurrentStateMecanumStrafe = Constants.stepState.STATE_COMPLETE;
-//                        robotDrive.setHardwareDrivePower(0);
-//                        robotDrive.setHardwareDriveRunUsingEncoders();
-//                        deleteParallelStep();
-//                        break;
-//                    }
-//                } else if (Math.abs(dblDistanceToEnd) <= mdblRobotParm6) {
-//                    fileLogger.writeEvent(3,"Complete Early ......." + dblDistanceToEnd);
-//                    fileLogger.writeEvent(3,"mblnRobotLastPos Complete Near END ");
-//                    mintCurrentStateMecanumStrafe = Constants.stepState.STATE_COMPLETE;
-//                    robotDrive.setHardwareDrivePower(0);
-//                    robotDrive.setHardwareDriveRunUsingEncoders();
-//                    deleteParallelStep();
-//                    break;
-//                }
-
-            } //end Case Running
-            //check timeout value
-            if (mStateTime.seconds() > mdblStepTimeout) {
-                fileLogger.writeEvent(1, "Timeout:- " + mStateTime.seconds());
-                //  Transition to a new state.
-                robotDrive.setHardwareDrivePower(0);
-                robotDrive.setHardwareDriveRunUsingEncoders();
-                mintCurrentStateMecanumStrafe = Constants.stepState.STATE_COMPLETE;
-                deleteParallelStep();
-                break;
-            }
-            break;
-        }
-    }
-
-    double mdblWyattsGyroDriveStartAngle = 0;
-
-    private void WyattsGyroDrive(){
-        switch(mintCurrentStateWyattsGyroDrive){
-            case STATE_INIT:
-                fileLogger.setEventTag("WyattsGyroDrive");
-
-                mdblWyattsGyroDriveStartAngle = getAdafruitHeading();
-                fileLogger.writeEvent(5,"Starting Gyro Value is: " + mdblWyattsGyroDriveStartAngle);
-
-                // Determine new target position, and pass to motor controller
-                int mintWyattsGyroDriveMoveCounts = (int)(mdblStepDistance * ourRobotConfig.getCOUNTS_PER_INCH());
-                fileLogger.writeEvent(3, "move counts in Wyatt Gyro Drive is: " + mintWyattsGyroDriveMoveCounts);
-
-                robotDrive.baseMotor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                robotDrive.baseMotor2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                robotDrive.baseMotor3.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                robotDrive.baseMotor4.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-
-                // Set Target and Turn On RUN_TO_POSITION
-                robotDrive.baseMotor1.setTargetPosition(robotDrive.baseMotor1.getCurrentPosition() + mintWyattsGyroDriveMoveCounts);
-                robotDrive.baseMotor2.setTargetPosition(robotDrive.baseMotor2.getCurrentPosition() + mintWyattsGyroDriveMoveCounts);
-                robotDrive.baseMotor3.setTargetPosition(robotDrive.baseMotor3.getCurrentPosition() + mintWyattsGyroDriveMoveCounts);
-                robotDrive.baseMotor4.setTargetPosition(robotDrive.baseMotor4.getCurrentPosition() + mintWyattsGyroDriveMoveCounts);
-
-                robotDrive.setHardwareDrivePower(mdblStepSpeed);
-                break;
-
-            case STATE_RUNNING:
-                // adjust relative speed based on heading error.
-                double driveError = getDriveError(mdblWyattsGyroDriveStartAngle);
-                fileLogger.writeEvent(3, "Drive Error in Wyatt Gryo Drive is: " + driveError);
-                fileLogger.writeEvent(3, "Current Gyro Value: " + getAdafruitHeading());
-                double steer = getDriveSteer(driveError, mdblRobotParm1);
-                fileLogger.writeEvent(3, "Drive Steer in Wyatt Gyro Drive is" + steer);
-
-                // if driving in reverse, the motor correction also needs to be reversed
-                if (mdblStepDistance < 0)
-                    steer *= -1.0;
-
-                double leftSpeed = mdblStepSpeed - steer;
-                fileLogger.writeEvent(3, "Left Motor Speed in Wyatts Gyro Drive is: " + leftSpeed);
-                double rightSpeed = mdblStepSpeed + steer;
-                fileLogger.writeEvent(3, "Right Motor Speed in Wyatts Gyro Drive is: " + rightSpeed);
-
-                // Normalize speeds if either one exceeds +/- 1.0;
-                double max = Math.max(Math.abs(leftSpeed), Math.abs(rightSpeed));
-                if (max > 1.0)
-                {
-                    leftSpeed /= max;
-                    rightSpeed /= max;
-                }
-
-                robotDrive.setHardwareDriveLeftMotorPower(leftSpeed);
-                robotDrive.setHardwareDriveRightMotorPower(rightSpeed);
-
-                if (!robotDrive.baseMotor1.isBusy() && !robotDrive.baseMotor2.isBusy() &&
-                        !robotDrive.baseMotor3.isBusy() && !robotDrive.baseMotor4.isBusy()){
-
-                    mintCurrentStateWyattsGyroDrive = Constants.stepState.STATE_COMPLETE;
-
-                    robotDrive.setHardwareDrivePower(0);
-
-                    // Turn off RUN_TO_POSITION
-                    robotDrive.baseMotor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                    robotDrive.baseMotor2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                    robotDrive.baseMotor3.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                    robotDrive.baseMotor4.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                    fileLogger.writeEvent(2, "Basemotor turned off Run To Position in Wyatts Gyro Drive");
-                }
-
-                if (mStateTime.seconds() > mdblStepTimeout) {
-                    robotDrive.setHardwareDrivePower(0);
-                    fileLogger.writeEvent(1,"Timeout:- " + mStateTime.seconds());
-                    //  Transition to a new state.
-                    mintCurrentStateMoveLift = Constants.stepState.STATE_COMPLETE;
-                    deleteParallelStep();
-                }
-                break;
-        }
-    }
-
+    //region Tank Turning Functions
     private void TankTurnGyroHeading() {
         fileLogger.setEventTag("TankTurnGyroHeading()");
         switch (mintCurrentStateTankTurnGyroHeading) {
@@ -2250,21 +1969,14 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
             }
             break;
             case STATE_RUNNING: {
-                double adafruitIMUHeading = getAdafruitHeading();
-
-                if(adafruitIMUHeading > 180) {
-                    adafruitIMUHeading -= 360;
-                } else if (adafruitIMUHeading < 0) {
-                    adafruitIMUHeading += 360;
-                }
+                //Takes the Gyro Angle of 0~360
+                double adafruitIMUHeading = TOWR5291Utils.applyAngleWrap(getAdafruitHeading(), 180);
 
                 dashboard.displayPrintf(9, "Gyro Read" + adafruitIMUHeading);
-                dashboard.displayPrintf(11, "Difference " + TOWR5291Utils.differenceBetweenAngles(mdblWyattsGyroDriveStartAngle, adafruitIMUHeading));
+                dashboard.displayPrintf(11, "Difference " + TOWR5291Utils.differenceBetweenAngles(mdblTankTurnGyroRequiredHeading, adafruitIMUHeading));
                 dashboard.refreshDisplay();
 
-                double dblError = 10;
-
-                if(TOWR5291Utils.differenceBetweenAngles(mdblWyattsGyroDriveStartAngle, adafruitIMUHeading) > 0) {
+                if(TOWR5291Utils.differenceBetweenAngles(mdblTankTurnGyroRequiredHeading, adafruitIMUHeading) > 0) {
                     robotDrive.setHardwareDriveLeftMotorPower(-mdblStepSpeed);
                     robotDrive.setHardwareDriveRightMotorPower(mdblStepSpeed);
                 } else {
@@ -2305,6 +2017,7 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
             break;
         }
     }
+    //endregion
 
     /*
     private void TankTurnGyroHeading() {
@@ -2508,8 +2221,6 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
                     } else {
                         mdblTargetPositionTop1 = 0;
                         mdblTargetPositionTop2 = 0;
-                        fileLogger.writeEvent("ERROR ERROR ERROR ERROR ERROR ERROR ERROR");
-                        fileLogger.writeEvent("ERROR ERROR ERROR ERROR ERROR ERROR ERROR");
                         fileLogger.writeEvent("ERROR MOVING LIFT PARM 1 IS THE MODE CAN BE 0 OR 1");
                         fileLogger.writeEvent("Mode 1 is to move a certain distance so like move out 1 more inch");
                         fileLogger.writeEvent("Mode 2 is to move to a spot so move to 5 inches on the lift");
@@ -2832,13 +2543,6 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
             break;
         }
     }
-
-
-
-
-
-
-
 
     private boolean findSkystone() {
 //        String tag = fileLogger.getEventTag();
@@ -3330,23 +3034,12 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
     {
         Orientation angles;
         angles = imu.getAngularOrientation().toAxesReference(AxesReference.INTRINSIC).toAxesOrder(AxesOrder.ZYX);
-        return angleToHeading(formatAngle(angles.angleUnit, angles.firstAngle));
+        return formatAngle(angles.angleUnit, angles.firstAngle) % 360;
     }
 
     //for adafruit IMU
     private Double formatAngle(AngleUnit angleUnit, double angle) {
         return AngleUnit.DEGREES.fromUnit(angleUnit, angle);
-    }
-
-    //for adafruit IMU as it returns z angle only
-    private double angleToHeading(double z) {
-        double angle = -z;// + imuStartCorrectionVar + imuMountCorrectionVar;
-        if (angle < 0)
-            return angle + 360;
-        else if (angle > 360)
-            return angle - 360;
-        else
-            return angle;
     }
 
     // Computes the current battery voltage
@@ -3377,10 +3070,8 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
                 (mintCurrentStateInTake                 == Constants.stepState.STATE_COMPLETE) &&
                 (mintCurrentStateNextStone              == Constants.stepState.STATE_COMPLETE) &&
                 (mintCurrentStateRadiusTurn             == Constants.stepState.STATE_COMPLETE) &&
-                (mintCurrentStateWyattsGyroDrive        == Constants.stepState.STATE_COMPLETE) &&
                 (mintCurrentStateClawMovement           == Constants.stepState.STATE_COMPLETE) &&
                 (mintCurrentStateTapeMeasure            == Constants.stepState.STATE_COMPLETE) &&
-                (mintCurrentStepFindGoldSS              == Constants.stepState.STATE_COMPLETE) &&
                 (mintCurrentStateFlywheelPower          == Constants.stepState.STATE_COMPLETE) &&
                 (mintCurrentStateGrabBlock              == Constants.stepState.STATE_COMPLETE)) {
             return true;
@@ -3405,10 +3096,8 @@ public class AutoDriveTeam5291FreightFrenzy extends OpModeMasterLinear {
         mintCurrentStateInTake              = Constants.stepState.STATE_COMPLETE;
         mintCurrentStateNextStone            = Constants.stepState.STATE_COMPLETE;
         mintCurrentStateRadiusTurn          = Constants.stepState.STATE_COMPLETE;
-        mintCurrentStateWyattsGyroDrive     = Constants.stepState.STATE_COMPLETE;
         mintCurrentStateClawMovement        = Constants.stepState.STATE_COMPLETE;
         mintCurrentStateTapeMeasure         = Constants.stepState.STATE_COMPLETE;
-        mintCurrentStepFindGoldSS           = Constants.stepState.STATE_COMPLETE;
         mintCurrentStateGrabBlock           = Constants.stepState.STATE_COMPLETE;
         mintCurrentStateFlywheelPower       = Constants.stepState.STATE_COMPLETE;
     }
